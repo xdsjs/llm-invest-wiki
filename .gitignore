@@ -1,0 +1,5 @@
+node_modules/
+dist/
+AGENTS.md
+.llm-wiki-invest/
+*.log
