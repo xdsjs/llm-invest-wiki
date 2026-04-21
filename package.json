@@ -12,7 +12,10 @@
     "pretest": "tsup",
     "test": "vitest run",
     "test:watch": "vitest",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "release:patch": "npm test && npm version patch && git push origin main --tags",
+    "release:minor": "npm test && npm version minor && git push origin main --tags",
+    "release:major": "npm test && npm version major && git push origin main --tags"
   },
   "keywords": [
     "llm",
