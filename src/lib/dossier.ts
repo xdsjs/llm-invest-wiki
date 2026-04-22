@@ -38,6 +38,17 @@ export interface DossierManifest {
   materials: DossierMaterialInput[];
 }
 
+export interface DossierState {
+  market: string;
+  ticker: string;
+  companyName: string;
+  cik: string | null;
+  exchange: string | null;
+  template: string;
+  initializedAt: string;
+  materials: Record<string, { outputPath: string; contentHash: string }>;
+}
+
 function yamlQuote(value: string): string {
   return `'${value.replace(/'/g, "''")}'`;
 }
