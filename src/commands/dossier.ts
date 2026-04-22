@@ -2,7 +2,9 @@ import { Command } from 'commander';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { requireVaultRoot, vaultPaths } from '../lib/config.js';
+import { loadDossierManifest } from '../lib/dossier.js';
 import type { DossierState } from '../lib/dossier.js';
+import { applyManifest } from '../lib/dossier-apply.js';
 
 export const dossierCommand = new Command('dossier')
   .description('Manage read-only dossier materials');
@@ -41,4 +43,18 @@ dossierCommand
 
     writeFileSync(paths.dossierState, JSON.stringify(state, null, 2));
     console.log(`Initialized dossier state for ${opts.ticker}`);
+  });
+
+dossierCommand
+  .command('apply')
+  .description('Materialize a reviewed dossier manifest into the current vault')
+  .argument('<manifest>', 'path to reviewed dossier manifest json')
+  .action(async (manifestPath: string) => {
+    const root = requireVaultRoot();
+    const manifest = loadDossierManifest(manifestPath);
+    const result = await applyManifest(root, manifest);
+
+    console.log(`Created: ${result.created.length}`);
+    console.log(`Skipped duplicates: ${result.skippedDuplicates.length}`);
+    console.log(`Unresolved: ${result.unresolved.length}`);
   });
