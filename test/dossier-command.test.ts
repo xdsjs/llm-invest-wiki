@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { execSync } from 'node:child_process';
+import { execSync, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -85,5 +85,57 @@ describe('dossier command', () => {
     expect(output).toContain('Created: 1');
     expect(existsSync(outPath)).toBe(true);
     expect(readFileSync(outPath, 'utf-8')).toContain("title: 'Apple Q1 Results Release'");
+  });
+
+  it('should show dossier status summary', () => {
+    mkdirSync(join(testDir, 'dossier/company/earnings-release/2026/2026-02-01-q1-results'), {
+      recursive: true,
+    });
+    writeFileSync(
+      join(testDir, 'dossier/company/earnings-release/2026/2026-02-01-q1-results/00-primary-q1-release.md'),
+      `---
+title: 'Apple Q1 Results Release'
+source: 'https://investor.apple.com/q1-release.md'
+author: '[[apple.com]]'
+published: '2026-02-01'
+created: '2026-04-23'
+authority: 'company'
+document_type: 'earnings-release'
+disclosure_key: '2026-02-01-q1-results'
+---
+
+# Q1 Results
+`
+    );
+    execSync(
+      `node ${CLI} dossier init --market us --ticker AAPL --company-name "Apple Inc." --cik 0000320193 --exchange NASDAQ`,
+      { cwd: testDir }
+    );
+
+    const output = execSync(`node ${CLI} dossier status`, {
+      cwd: testDir,
+      encoding: 'utf-8',
+    });
+
+    expect(output).toContain('Dossier: AAPL');
+    expect(output).toContain('Materials: 1');
+    expect(output).toContain('Disclosures: 1');
+    expect(output).toContain('company: 1');
+  });
+
+  it('should fail dossier check when dossier files are malformed', () => {
+    mkdirSync(join(testDir, 'dossier/sec/10-k/2024/disclosure-a'), { recursive: true });
+    writeFileSync(
+      join(testDir, 'dossier/sec/10-k/2024/disclosure-a/00-primary-10-k.md'),
+      '# missing frontmatter'
+    );
+
+    const result = spawnSync('node', [CLI, 'dossier', 'check'], {
+      cwd: testDir,
+      encoding: 'utf-8',
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.stdout).toContain('missing_frontmatter');
   });
 });

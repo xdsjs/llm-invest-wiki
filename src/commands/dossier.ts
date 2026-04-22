@@ -1,10 +1,25 @@
 import { Command } from 'commander';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { requireVaultRoot, vaultPaths } from '../lib/config.js';
 import { loadDossierManifest } from '../lib/dossier.js';
 import type { DossierState } from '../lib/dossier.js';
 import { applyManifest } from '../lib/dossier-apply.js';
+import { auditDossier, summarizeDossier } from '../lib/dossier-audit.js';
+
+function countUnresolvedFiles(dir: string): number {
+  if (!existsSync(dir)) {
+    return 0;
+  }
+
+  let count = 0;
+  for (const entry of readdirSync(dir, { withFileTypes: true, recursive: true })) {
+    if (entry.isFile() && entry.name.endsWith('.json')) {
+      count++;
+    }
+  }
+  return count;
+}
 
 export const dossierCommand = new Command('dossier')
   .description('Manage read-only dossier materials');
@@ -57,4 +72,68 @@ dossierCommand
     console.log(`Created: ${result.created.length}`);
     console.log(`Skipped duplicates: ${result.skippedDuplicates.length}`);
     console.log(`Unresolved: ${result.unresolved.length}`);
+  });
+
+dossierCommand
+  .command('status')
+  .description('Show dossier coverage and unresolved summary')
+  .action(() => {
+    const root = requireVaultRoot();
+    const paths = vaultPaths(root);
+    const summary = summarizeDossier(paths.dossier);
+    const unresolvedCount = countUnresolvedFiles(paths.dossierUnresolved);
+
+    if (existsSync(paths.dossierState)) {
+      const state = JSON.parse(readFileSync(paths.dossierState, 'utf-8')) as Partial<DossierState>;
+      if (state.ticker || state.companyName) {
+        console.log(`Dossier: ${state.ticker ?? 'unknown'}${state.companyName ? ` — ${state.companyName}` : ''}`);
+      }
+      if (state.market) {
+        console.log(`Market: ${state.market}`);
+      }
+      console.log('');
+    }
+
+    console.log(`Materials: ${summary.materialCount}`);
+    console.log(`Disclosures: ${summary.disclosureCount}`);
+    console.log(`Unresolved: ${unresolvedCount}`);
+    if (summary.latestPublished) {
+      console.log(`Latest Published: ${summary.latestPublished}`);
+    }
+
+    if (Object.keys(summary.byAuthority).length > 0) {
+      console.log('');
+      console.log('By Authority:');
+      for (const [authority, count] of Object.entries(summary.byAuthority).sort(([a], [b]) => a.localeCompare(b))) {
+        console.log(`  ${authority}: ${count}`);
+      }
+    }
+
+    if (Object.keys(summary.byDocumentType).length > 0) {
+      console.log('');
+      console.log('By Document Type:');
+      for (const [documentType, count] of Object.entries(summary.byDocumentType).sort(([a], [b]) => a.localeCompare(b))) {
+        console.log(`  ${documentType}: ${count}`);
+      }
+    }
+  });
+
+dossierCommand
+  .command('check')
+  .description('Audit dossier structure and required frontmatter')
+  .action(() => {
+    const root = requireVaultRoot();
+    const paths = vaultPaths(root);
+    const issues = auditDossier(paths.dossier);
+
+    if (issues.length === 0) {
+      console.log('Dossier check: OK');
+      return;
+    }
+
+    console.log(`Dossier issues: ${issues.length}`);
+    for (const issue of issues) {
+      console.log(`- ${issue.type}: ${issue.path} — ${issue.detail}`);
+    }
+    process.exitCode = 1;
   });
