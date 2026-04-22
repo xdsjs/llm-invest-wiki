@@ -1,6 +1,6 @@
 {
   "name": "@xdsjs/llm-wiki-invest",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Agent-native LLM Wiki Invest — AI-maintained knowledge base with Obsidian compatibility",
   "type": "module",
   "bin": {
