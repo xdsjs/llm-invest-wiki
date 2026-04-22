@@ -42,8 +42,16 @@ describe('init command', () => {
     execSync(`node ${CLI} init`, { cwd: testDir });
     const claudeSkill = join(testDir, '.claude/skills/llm-wiki-invest.md');
     const agentsSkill = join(testDir, '.agents/skills/llm-wiki-invest.md');
+    const claudeDossier = join(testDir, '.claude/skills/invest-wiki-dossier');
+    const agentsDossier = join(testDir, '.agents/skills/invest-wiki-dossier');
     expect(existsSync(claudeSkill)).toBe(true);
     expect(existsSync(agentsSkill)).toBe(true);
+    expect(existsSync(join(claudeDossier, 'SKILL.md'))).toBe(true);
+    expect(existsSync(join(claudeDossier, 'agents/openai.yaml'))).toBe(true);
+    expect(existsSync(join(claudeDossier, 'template/us.md'))).toBe(true);
+    expect(existsSync(join(agentsDossier, 'SKILL.md'))).toBe(true);
+    expect(existsSync(join(agentsDossier, 'agents/openai.yaml'))).toBe(true);
+    expect(existsSync(join(agentsDossier, 'template/us.md'))).toBe(true);
     // Content must match (not just empty file)
     const claudeContent = readFileSync(claudeSkill, 'utf-8');
     const agentsContent = readFileSync(agentsSkill, 'utf-8');

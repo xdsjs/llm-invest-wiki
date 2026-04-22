@@ -1,0 +1,4 @@
+interface:
+  display_name: "Invest Wiki Dossier"
+  short_description: "Build auditable official-source dossiers for listed companies"
+  default_prompt: "Use $invest-wiki-dossier to build a fact-only dossier for a U.S. listed company from official, regulatory, exchange, and company-controlled sources."

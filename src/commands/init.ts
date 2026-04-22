@@ -163,6 +163,7 @@ const CLAUDE_MD_TEMPLATE = `# LLM Wiki Invest
 ## 结构
 
 - \`wiki/\`：由 AI 维护的 wiki 页面（兼容 Obsidian）
+- \`dossier/\`：只读事实层材料（官方文件的 Markdown 派生件）
 - \`wiki-agent.md\`：agent 行为规则（可选，vault 专属）
 - \`sources/\`：原始来源材料，按日期分区（不可修改）
 - \`wiki-log.md\`：追加式操作日志
@@ -174,6 +175,9 @@ const CLAUDE_MD_TEMPLATE = `# LLM Wiki Invest
 - \`llm-wiki-invest graph\`：社区、枢纽页、孤儿页、待写页
 - \`llm-wiki-invest status\`：统计信息和健康摘要
 - \`llm-wiki-invest sync\`：跟踪 mtime / SHA256 变化，并在配置时推送 embedding 到 DB9
+- \`llm-wiki-invest dossier init ...\`：初始化当前 vault 的 dossier 身份上下文
+- \`llm-wiki-invest dossier apply <manifest>\`：把 reviewed dossier manifest 物化到 \`dossier/\`
+- \`llm-wiki-invest dossier status\` / \`check\`：查看 dossier 覆盖状态并做结构检查
 
 ## 规则
 
@@ -225,6 +229,7 @@ const AGENTS_MD_TEMPLATE = `# LLM Wiki Invest
 ## 结构
 
 - \`wiki/\`：由 AI 维护的 wiki 页面（兼容 Obsidian）
+- \`dossier/\`：只读事实层材料（官方文件的 Markdown 派生件）
 - \`wiki-agent.md\`：agent 行为规则（可选，vault 专属）
 - \`sources/\`：原始来源材料，按日期分区（不可修改）
 - \`wiki-log.md\`：追加式操作日志
@@ -236,6 +241,9 @@ const AGENTS_MD_TEMPLATE = `# LLM Wiki Invest
 - \`llm-wiki-invest graph\`：社区、枢纽页、孤儿页、待写页
 - \`llm-wiki-invest status\`：统计信息和健康摘要
 - \`llm-wiki-invest sync\`：跟踪 mtime / SHA256 变化，并在配置时推送 embedding 到 DB9
+- \`llm-wiki-invest dossier init ...\`：初始化当前 vault 的 dossier 身份上下文
+- \`llm-wiki-invest dossier apply <manifest>\`：把 reviewed dossier manifest 物化到 \`dossier/\`
+- \`llm-wiki-invest dossier status\` / \`check\`：查看 dossier 覆盖状态并做结构检查
 
 ## 规则
 

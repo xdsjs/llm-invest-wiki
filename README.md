@@ -29,6 +29,18 @@ llm-wiki-invest init
 
 `llm-wiki-invest init` 是唯一的初始化命令。它会一次性创建 vault 文件、agent bootstrap 文件（`CLAUDE.md`、`AGENTS.md`），并把内置 skill 安装到 `.claude/skills/` 和 `.agents/skills/`。
 
+如果你要给一家美国上市公司建立只读事实层 dossier，典型流程是：
+
+```bash
+llm-wiki-invest init
+llm-wiki-invest dossier init --market us --ticker AAPL --company-name "Apple Inc." --cik 0000320193 --exchange NASDAQ
+
+# 由 agent 按 skills/invest-wiki-dossier/template/us.md 生成 reviewed manifest 后执行
+llm-wiki-invest dossier apply manifest.json
+llm-wiki-invest dossier status
+llm-wiki-invest dossier check
+```
+
 升级包之后，可以用下面的命令刷新已安装的 skill 文件：
 
 ```bash
@@ -45,6 +57,7 @@ my-wiki/
 ├── wiki-schema.md         # 页面类型、命名规则、frontmatter 规则
 ├── wiki-log.md            # 追加式操作日志
 ├── wiki/                  # 由 AI 维护的 wiki 页面（兼容 Obsidian）
+├── dossier/               # 只读事实层材料（官方文件的 Markdown 派生件）
 ├── sources/               # 原始、不可变的来源材料
 │   └── YYYY-MM-DD/        # 按日期存储
 ├── .claude/
@@ -55,7 +68,9 @@ my-wiki/
 │       └── llm-wiki-invest.md    # Codex 使用的 skill 文件
 └── .llm-wiki-invest/
     ├── config.toml        # Vault 配置
-    └── sync-state.json    # 增量同步状态
+    ├── sync-state.json    # 增量同步状态
+    ├── dossier-state.json # dossier 身份与材料状态
+    └── dossier-unresolved/ # 无法稳定处理的 dossier 材料
 ```
 
 `llm-wiki-invest init` 会一步生成上面所有内容。
@@ -98,6 +113,10 @@ Skill 暴露四个操作，它们都以斜杠命令的形式被调用：
 | 命令 | 说明 |
 |------|------|
 | `llm-wiki-invest init [dir]` | 初始化一个新的 wiki vault |
+| `llm-wiki-invest dossier init ...` | 初始化当前 vault 的 dossier 身份上下文 |
+| `llm-wiki-invest dossier apply <manifest>` | 把 reviewed dossier manifest 物化到 `dossier/` |
+| `llm-wiki-invest dossier status` | 展示 dossier 材料数、披露数、authority/type 统计与 unresolved 数 |
+| `llm-wiki-invest dossier check` | 检查 dossier 目录结构与 frontmatter 是否合规 |
 | `llm-wiki-invest search <query>` | BM25 关键词搜索（如果配置了 DB9，也会结合向量搜索） |
 | `llm-wiki-invest graph [--json]` | 分析 wikilink 图：社区、枢纽页、孤儿页、待写页 |
 | `llm-wiki-invest status` | 展示 wiki 统计信息和健康摘要 |
@@ -151,11 +170,16 @@ url = "your-db9-connection-string"
 
 ## Obsidian 兼容性
 
-`wiki/` 目录本身就是一个标准的 Obsidian vault：
+`wiki/` 和 `dossier/` 都是标准 Markdown 目录，可以直接在 Obsidian 中打开：
 
 - YAML frontmatter
 - `[[wikilink]]` 交叉引用
 - 可直接在 Obsidian 中打开、浏览、看图谱和编辑
+
+其中：
+
+- `wiki/` 用于 agent 和人持续维护的知识页
+- `dossier/` 用于只读事实层材料，不应手工改写正文
 
 ## 配置
 

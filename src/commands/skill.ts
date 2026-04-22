@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { getSkillsDir, listSkills, installSkillsTo } from '../lib/skills.js';
+import { getSkillEntry, getSkillsDir, listSkills, installSkillsTo } from '../lib/skills.js';
 
 export const skillCommand = new Command('skill')
   .description('Manage AI agent skills');
@@ -20,7 +20,7 @@ skillCommand
       const dir = join(workspace, '.claude', 'skills');
       const { installed } = installSkillsTo(dir);
       console.log(`Installed ${installed.length} skill${installed.length === 1 ? '' : 's'} to ${dir}/`);
-      for (const file of installed) console.log(`  ${file.replace('.md', '')}`);
+      for (const name of installed) console.log(`  ${name}`);
     }
 
     if (both || opts.codex) {
@@ -28,7 +28,7 @@ skillCommand
       const { installed } = installSkillsTo(dir);
       if (both) console.log('');
       console.log(`Installed ${installed.length} skill${installed.length === 1 ? '' : 's'} to ${dir}/`);
-      for (const file of installed) console.log(`  ${file.replace('.md', '')}`);
+      for (const name of installed) console.log(`  ${name}`);
     }
   });
 
@@ -43,14 +43,14 @@ skillCommand
       process.exit(1);
     }
 
-    const skillPath = join(skillsDir, `${name}.md`);
-    if (!existsSync(skillPath)) {
+    const skill = getSkillEntry(skillsDir, name);
+    if (!skill) {
       console.error(`Error: Skill "${name}" not found.`);
-      console.error(`Available: ${listSkills(skillsDir).map(f => f.replace('.md', '')).join(', ')}`);
+      console.error(`Available: ${listSkills(skillsDir).join(', ')}`);
       process.exit(1);
     }
 
-    console.log(readFileSync(skillPath, 'utf-8'));
+    console.log(readFileSync(skill.mainPath, 'utf-8'));
   });
 
 skillCommand
@@ -66,7 +66,7 @@ skillCommand
     const files = listSkills(skillsDir);
     console.log('Available skills:');
     for (const file of files) {
-      console.log(`  ${file.replace(/\.md$/, '')}`);
+      console.log(`  ${file}`);
     }
     console.log('');
     console.log('Install all:  llm-wiki-invest skill install');
