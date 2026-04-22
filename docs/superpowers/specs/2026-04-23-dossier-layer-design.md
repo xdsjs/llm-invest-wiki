@@ -1,188 +1,183 @@
-# Dossier Layer Design
+# Dossier 层设计
 
-Date: 2026-04-23
-Topic: single-company invest dossier layer
-Status: approved in discussion, not yet implemented
+日期：2026-04-23  
+主题：单公司 invest dossier 层  
+状态：讨论已通过，尚未实现
 
-## Goal
+## 目标
 
-Define the dossier layer for a single-company invest vault.
+定义单家公司 invest vault 的 dossier 层。
 
-The dossier layer is the vault's read-only fact layer. It stores official, regulatory,
-exchange, and company-controlled file-level materials as Markdown derivatives so that
-humans and agents can inspect them in Obsidian, while preserving a stable execution
-boundary between agent orchestration and deterministic CLI actions.
+dossier 层是这个 vault 的只读事实层。它把官方、监管、交易所、公司控制的文件级公开材料保存为 Markdown 派生件，供人和 agent 在 Obsidian 中查看，同时保持“agent 编排”和“CLI 确定性执行”之间的稳定边界。
 
-## Non-goals
+## 非目标
 
-- Do not redesign the existing `wiki/` layer.
-- Do not make the CLI call LLMs directly.
-- Do not store original binary or HTML source files inside `dossier/`.
-- Do not let LLMs freely edit dossier files after they are materialized.
+- 不重设计现有的 `wiki/` 层。
+- 不让 CLI 直接调用 LLM。
+- 不在 `dossier/` 内保存原始二进制文件或 HTML 原件。
+- 不允许 LLM 在 materialize 之后自由编辑 dossier 文件。
 
-## Core decisions
+## 核心决策
 
-### Vault model
+### Vault 模型
 
-- One company equals one vault.
-- This spec only defines `dossier/`.
-- The existing `wiki/` layer remains separate and is out of scope for this spec.
+- 一家公司就是一个 vault。
+- 本 spec 只定义 `dossier/`。
+- 现有 `wiki/` 层继续存在，但不在本 spec 范围内。
 
-### Dossier semantics
+### Dossier 语义
 
-- `dossier/` is read-only.
-- Dossier stores file-level official materials only.
-- Ordinary company or IR HTML pages are discovery inputs only and do not become dossier files.
-- Each dossier file is a near-original Markdown derivative of one official source file.
-- LLMs may help decide what to fetch and how to classify it, but they may not freely rewrite dossier outputs.
+- `dossier/` 是只读层。
+- dossier 只保存文件级官方材料。
+- 普通公司官网或 IR HTML 页面只作为发现入口，不会直接成为 dossier 文件。
+- 每个 dossier 文件都是一份官方源文件的近原文 Markdown 派生件。
+- LLM 可以参与“抓什么、如何分类”的判断，但不能自由改写 dossier 产物。
 
-### Authority model
+### Authority 模型
 
-The first path segment under `dossier/` is the publishing authority, not the content topic.
+`dossier/` 下第一层路径表示发布权威来源，而不是内容主题。
 
-Allowed first-level authorities in the U.S. template:
+美国模板允许的一级 authority：
 
 - `sec`
 - `nasdaq`
 - `nyse`
 - `company`
 
-Company-controlled materials are not split in the path by `ir`, `governance`, or `newsroom`.
-That channel detail belongs in metadata, not in the directory tree.
+公司控制来源不会在路径里继续拆成 `ir`、`governance`、`newsroom`。这些 channel 信息放在元数据里，不放在目录树里。
 
-### Material and disclosure boundaries
+### 材料与披露边界
 
-- One official file maps to one dossier Markdown file.
-- One disclosure event maps to one directory.
-- Multiple files from the same disclosure must live under the same disclosure directory.
-- Different documents of the same type are different materials when their publication identity differs.
-  Example: two `10-K` filings from different dates are different materials.
+- 一份官方文件对应一个 dossier Markdown 文件。
+- 一次披露事件对应一个目录。
+- 同一次披露下的多个文件必须放在同一个披露目录里。
+- 同一文档类型并不代表同一材料。
+  例如：两个不同发布日期的 `10-K` 是两份不同材料。
 
-### Read-only derivative model
+### 只读派生模型
 
-The dossier does not store original raw files. Instead it stores Markdown derivatives whose
-frontmatter points back to the original URL and source authority.
+dossier 不保存原始文件，只保存 Markdown 派生件。  
+这些派生件通过 frontmatter 指回原始 URL 和来源 authority。
 
-The derivative should stay close to the original document structure and wording. It is not a
-fact summary page and not an analysis page.
+派生件应尽量贴近原始文档的结构和措辞。它不是事实汇总页，也不是分析页。
 
-## Approaches considered
+## 备选方案
 
-### Approach A: thick template, thin CLI
+### 方案 A：厚模板，薄 CLI
 
-- Put most U.S.-specific logic into `template/us.md`
-- Keep CLI as a very small downloader/materializer
+- 把大部分美国市场特有逻辑写进 `template/us.md`
+- CLI 只保留很小的下载和 materialize 能力
 
-Pros:
+优点：
 
-- Fast to iterate at the template level
-- Easy for agents to reason about market-specific behavior
+- 模板层迭代快
+- agent 更容易依据模板推理市场规则
 
-Cons:
+缺点：
 
-- Too much execution logic drifts into prose
-- Hard to test deterministic behavior
-- Skill layer becomes overloaded
+- 太多执行逻辑会漂到文字描述里
+- 确定性行为不易测试
+- skill 层负担过重
 
-### Approach B: thick CLI, thin template
+### 方案 B：厚 CLI，薄模板
 
-- Hardcode most U.S. discovery and classification logic in CLI
-- Use template mostly for high-level policy
+- 把大部分美国市场的发现和分类逻辑硬编码进 CLI
+- 模板只保留高层原则
 
-Pros:
+优点：
 
-- Stable execution path
-- Easier deterministic replay
+- 执行路径稳定
+- 更容易做确定性重跑
 
-Cons:
+缺点：
 
-- Violates the project's current philosophy
-- Makes the CLI own judgment-heavy logic
-- Harder to extend cleanly to other markets later
+- 不符合当前项目哲学
+- 让 CLI 承担了判断型逻辑
+- 以后扩展到其他市场会更别扭
 
-### Approach C: medium template, medium CLI, explicit orchestration boundary
+### 方案 C：中厚模板 + 中厚 CLI + 明确编排边界
 
-- `template/us.md` defines policy, scope, classification, dedupe rules, and output schema
-- `invest-wiki-dossier` skill orchestrates discovery and classification under the template
-- CLI executes deterministic primitives from a reviewed manifest
+- `template/us.md` 定义策略、范围、分类、去重规则和输出 schema
+- `invest-wiki-dossier` skill 在模板约束下做发现和分类编排
+- CLI 根据已审定 manifest 执行确定性原语
 
-Recommendation:
+推荐：
 
-- Choose Approach C.
-- It best matches the desired boundary: skill as orchestration layer, CLI as execution layer.
+- 选择方案 C。
+- 它最符合已锁定的边界：skill 是编排层，CLI 是执行层。
 
-## Recommended architecture
+## 推荐架构
 
-### Skill responsibility
+### Skill 职责
 
-`invest-wiki-dossier` is the orchestration layer.
+`invest-wiki-dossier` 是编排层。
 
-It must:
+它必须：
 
-- read `template/us.md`
-- resolve company identity
-- inspect official discovery pages and APIs
-- decide which links are valid official file-level materials
-- classify each material into a dossier `document_type`
-- group materials into disclosure directories
-- emit a reviewed manifest for deterministic execution
-- call dossier CLI commands
+- 读取 `template/us.md`
+- 解析公司身份
+- 检查官方发现入口页面和 API
+- 判断哪些链接是真正的官方文件级材料
+- 将每份材料归类到 dossier `document_type`
+- 把材料分组到披露目录
+- 产出一个经过审定、可供确定性执行的 manifest
+- 调用 dossier CLI 命令
 
-It must not:
+它不得：
 
-- directly write dossier Markdown files except through CLI execution
-- turn HTML discovery pages into dossier materials
-- rewrite already materialized dossier files
-- write investment conclusions into dossier
+- 绕过 CLI 直接写 dossier Markdown 文件
+- 把 HTML 发现页当作 dossier 材料
+- 重写已经 materialize 的 dossier 文件
+- 在 dossier 中写投资结论
 
-### Template responsibility
+### 模板职责
 
-`template/us.md` is the U.S. market policy file.
+`template/us.md` 是美国市场的 dossier 策略文件。
 
-It must define:
+它必须定义：
 
-- what counts as an allowed dossier material
-- what discovery surfaces are allowed
-- what document types exist
-- how authorities and channels are interpreted
-- how paths and disclosure directories are formed
-- what frontmatter fields are required
-- how duplicate detection should behave
-- what should be marked unresolved instead of materialized
+- 什么算允许进入 dossier 的材料
+- 允许使用哪些发现入口
+- 有哪些文档类型
+- authority 与 channel 如何解释
+- 路径和披露目录如何形成
+- frontmatter 有哪些必填字段
+- 重复检测应如何工作
+- 哪些情况应写入 unresolved，而不是直接落盘
 
-It should not act as pseudocode for downloading or file I/O.
+它不应充当下载或文件 I/O 的伪代码说明。
 
-### CLI responsibility
+### CLI 职责
 
-The CLI is the deterministic execution layer.
+CLI 是确定性执行层。
 
-It must:
+它必须：
 
-- initialize local dossier state from explicit identity inputs
-- read a reviewed manifest
-- create dossier directories
-- fetch source files
-- turn those files into near-original Markdown derivatives
-- write dossier frontmatter
-- enforce naming rules
-- run duplicate checks
-- report status and structural problems
+- 接收显式身份输入，初始化本地 dossier 状态
+- 读取已审定 manifest
+- 创建 dossier 目录
+- 抓取源文件
+- 生成近原文 Markdown 派生件
+- 写 dossier frontmatter
+- 执行命名规则
+- 运行重复检测
+- 输出状态和结构问题
 
-It must not:
+它不得：
 
-- discover candidate materials from the web on its own in v1
-- infer company identity from ambiguous inputs
-- call LLMs directly
+- 在 v1 中自行从网络发现候选材料
+- 从模糊输入里推断公司身份
+- 直接调用 LLM
 
-## Directory layout
+## 目录布局
 
-The dossier tree removes the extra `materials/` nesting and uses:
+dossier 树去掉额外的 `materials/` 嵌套，统一使用：
 
 ```text
 dossier/{authority}/{document_type}/{year}/{disclosure_key}/
 ```
 
-Examples:
+示例：
 
 ```text
 dossier/sec/10-k/2024/2024-11-01-0000320193-10-k/
@@ -200,18 +195,18 @@ dossier/company/earnings-release/2026/2026-02-01-q1-results/
   02-transcript.md
 ```
 
-Rules:
+规则：
 
-- The disclosure directory is the grouping unit.
-- Sequence-prefixed filenames are mandatory within a disclosure directory.
-- All files in a disclosure directory follow the same naming convention.
-- The year segment is derived from the official publication date.
+- 披露目录是归组单位。
+- 披露目录内文件必须带顺序前缀。
+- 同一披露目录下的所有文件遵守统一命名规范。
+- 年份层来自官方发布日期。
 
-## Frontmatter schema
+## Frontmatter 规范
 
-Dossier files use YAML frontmatter.
+dossier 文件使用 YAML frontmatter。
 
-Minimum required fields:
+最小必填字段：
 
 ```yaml
 ---
@@ -226,56 +221,56 @@ disclosure_key:
 ---
 ```
 
-Field meaning:
+字段含义：
 
-- `title`: official or best available official document title
-- `source`: original file URL
-- `author`: Obsidian-style authority link such as `[[sec.gov]]` or `[[apple.com]]`
-- `published`: official publication date
-- `created`: local materialization date
-- `authority`: one of `sec`, `nasdaq`, `nyse`, `company`
-- `document_type`: normalized dossier document type
-- `disclosure_key`: stable grouping key for the enclosing disclosure directory
+- `title`：官方标题，或最接近官方表述的标题
+- `source`：原始文件 URL
+- `author`：Obsidian 风格的来源链接，例如 `[[sec.gov]]` 或 `[[apple.com]]`
+- `published`：官方发布日期
+- `created`：本地 materialize 日期
+- `authority`：`sec`、`nasdaq`、`nyse`、`company` 之一
+- `document_type`：标准化后的 dossier 文档类型
+- `disclosure_key`：当前披露目录的稳定归组 key
 
-Recommended additional fields:
+推荐的附加字段：
 
 - `retrieved_at`
 - `canonical_url`
 - `source_channel`
 
-## Dedupe and identity model
+## 去重与身份模型
 
-The dossier should avoid fetching the same material multiple times.
+dossier 应尽量避免重复抓取同一材料。
 
-Document type is not identity.
+文档类型不是材料身份。
 
-Identity rules:
+身份规则：
 
-- SEC materials: identify by `accession_no + primary_document`
-- NASDAQ materials: identify by `canonical_url + published`
-- NYSE materials: identify by `canonical_url + published`
-- Company materials: identify by `canonical_url + published`
+- SEC 材料：用 `accession_no + primary_document` 识别
+- NASDAQ 材料：用 `canonical_url + published` 识别
+- NYSE 材料：用 `canonical_url + published` 识别
+- 公司材料：用 `canonical_url + published` 识别
 
-Supporting rules:
+补充规则：
 
-- `content_hash` is a verification signal, not the primary identity key
-- if identity matches and content is unchanged, skip as duplicate
-- if identity matches and content changes, flag for review or version handling rather than silently overwrite
-- if publication identity differs, treat as a new material
+- `content_hash` 是校验信号，不是主身份键
+- 如果身份相同且内容未变，按重复材料跳过
+- 如果身份相同但内容变化，应标记审查或进入版本处理，而不是静默覆盖
+- 如果发布身份不同，应视为新材料
 
-This supports the principle discussed in design review:
+这与前面讨论得到的原则一致：
 
-- avoid duplicate fetches
-- keep separate materials separate
-- never collapse different disclosures just because they share the same `document_type`
+- 避免重复抓取
+- 让不同材料保持分离
+- 绝不因为共享同一个 `document_type` 就把不同披露合并
 
-## Manifest contract
+## Manifest 契约
 
-The manifest is the boundary between orchestration and deterministic execution.
+manifest 是“编排层”和“确定性执行层”的边界。
 
-The skill produces it. The CLI consumes it.
+它由 skill 产出，由 CLI 消费。
 
-Each manifest record should include at least:
+每条 manifest 记录至少应包含：
 
 - `company_name`
 - `ticker`
@@ -290,7 +285,7 @@ Each manifest record should include at least:
 - `sequence`
 - `suggested_filename`
 
-Optional fields:
+可选字段：
 
 - `accession_no`
 - `primary_document`
@@ -298,116 +293,115 @@ Optional fields:
 - `content_type`
 - `notes`
 
-The manifest must already reflect the orchestration judgment. The CLI should not need to infer
-classification from scratch.
+manifest 必须已经体现编排层的判断结果。CLI 不应再从零推断材料分类。
 
-## CLI command definitions
+## CLI 命令定义
 
 ### `llm-wiki-invest dossier init`
 
-Purpose:
+用途：
 
-- initialize dossier state for the current single-company vault
+- 为当前单公司 vault 初始化 dossier 状态
 
-Expected input:
+预期输入：
 
-- explicit identity values such as market, ticker, company name, CIK, exchange
+- 明确给出的身份字段，例如 market、ticker、company name、CIK、exchange
 
-Important boundary:
+关键边界：
 
-- this command does not discover identity itself
-- it records already-confirmed identity for later deterministic execution
+- 这条命令不自己发现或推断公司身份
+- 它只把已经确认的身份信息写入本地状态，供后续确定性执行使用
 
 ### `llm-wiki-invest dossier apply <manifest>`
 
-Purpose:
+用途：
 
-- apply a reviewed manifest to the local dossier tree
+- 把已审定的 manifest 执行并落盘到本地 dossier 树
 
-Responsibilities:
+职责：
 
-- create disclosure directories
-- fetch files
-- materialize Markdown derivatives
-- write frontmatter
-- enforce naming
-- perform duplicate checks
-- skip confirmed duplicates
-- report created, skipped, and unresolved items
+- 创建披露目录
+- 抓取文件
+- materialize Markdown 派生件
+- 写 frontmatter
+- 执行命名规则
+- 做重复检测
+- 跳过确认重复的材料
+- 输出新增、跳过和 unresolved 结果
 
 ### `llm-wiki-invest dossier status`
 
-Purpose:
+用途：
 
-- report dossier coverage and state
+- 报告当前 dossier 的覆盖情况和状态
 
-Suggested output:
+建议输出：
 
-- material count
-- disclosure count
-- counts by authority
-- counts by document type
-- latest publication date
-- unresolved count
-- last apply time
+- 材料文件数
+- 披露目录数
+- 按 authority 统计
+- 按 document type 统计
+- 最新 publication date
+- unresolved 数量
+- 最近一次 apply 时间
 
 ### `llm-wiki-invest dossier check`
 
-Purpose:
+用途：
 
-- validate dossier structure and frontmatter consistency
+- 检查 dossier 的结构和 frontmatter 一致性
 
-Suggested checks:
+建议检查项：
 
-- required frontmatter exists
-- `author` uses Obsidian-style links
-- path matches authority/document_type/year/disclosure_key
-- filenames use sequence prefixes
-- directory contents are consistently named
-- duplicate identity keys do not exist
-- empty or malformed files are flagged
+- 必填 frontmatter 是否存在
+- `author` 是否使用 Obsidian 风格链接
+- 路径是否符合 authority/document_type/year/disclosure_key
+- 文件名是否使用顺序前缀
+- 目录内文件命名是否一致
+- 是否存在重复身份 key
+- 是否有空文件或畸形文件
 
-### Future narrow helper: `llm-wiki-invest dossier sec-index`
+### 未来可加的窄 helper：`llm-wiki-invest dossier sec-index`
 
-Not part of v1, but explicitly allowed as a future narrow CLI helper.
+它不属于 v1，但明确允许作为未来的窄 CLI helper 存在。
 
-Purpose:
+用途：
 
-- fetch only structured SEC index data
+- 只抓取结构化 SEC index 数据
 
-Reason:
+原因：
 
-- this is a constrained deterministic helper and does not violate the orchestration boundary
-- it is preferable to a generic CLI `discover` command
+- 这是一个受限的确定性 helper，不会破坏“skill 编排、CLI 执行”的边界
+- 它优于一个泛化的 CLI `discover` 命令
 
-## End-to-end workflow
+## 端到端工作流
 
-### Initial build
+### 初次建档
 
-1. skill reads `template/us.md`
-2. skill resolves company identity
-3. skill inspects allowed discovery surfaces
-4. skill chooses valid file-level materials
-5. skill classifies materials and assigns disclosure groups
-6. skill writes manifest
-7. skill runs `dossier init`
-8. skill runs `dossier apply <manifest>`
-9. skill runs `dossier check`
+1. skill 读取 `template/us.md`
+2. skill 解析公司身份
+3. skill 检查允许的发现入口
+4. skill 选择有效的文件级材料
+5. skill 对材料分类并分配披露归组
+6. skill 写 manifest
+7. skill 运行 `dossier init`
+8. skill 运行 `dossier apply <manifest>`
+9. skill 运行 `dossier check`
 
-### Incremental sync
+### 增量同步
 
-1. skill re-runs discovery against allowed sources
-2. skill compares candidate materials against known identity keys
-3. skill writes a delta manifest
-4. skill runs `dossier apply <delta-manifest>`
-5. skill runs `dossier check`
+1. skill 再次对允许来源做发现
+2. skill 用已知身份 key 对候选材料做比较
+3. skill 写 delta manifest
+4. skill 运行 `dossier apply <delta-manifest>`
+5. skill 运行 `dossier check`
 
-## Why this design
+## 为什么这样设计
 
-This design preserves the project's existing philosophy while making dossier practical:
+这个设计既保留了当前项目的哲学，也让 dossier 实用可落地：
 
-- the agent keeps the judgment-heavy work
-- the CLI stays deterministic and testable
-- the dossier tree remains read-only and auditable
-- file-level materials remain grouped correctly by disclosure
-- future market templates can extend the same architecture without turning the CLI into an LLM runtime
+- judgment-heavy 的工作继续留给 agent
+- CLI 保持确定性、可测试、可重跑
+- dossier 树保持只读、可审计
+- 文件级材料能按披露正确归组
+- 未来扩展其他市场模板时，不必把 CLI 变成一个 LLM runtime
