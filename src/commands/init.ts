@@ -262,6 +262,7 @@ export const initCommand = new Command('init')
 
     // Create directories
     mkdirSync(paths.wiki, { recursive: true });
+    mkdirSync(paths.dossier, { recursive: true });
     mkdirSync(paths.sources, { recursive: true });
     mkdirSync(paths.llmWikiDir, { recursive: true });
 
@@ -299,6 +300,7 @@ export const initCommand = new Command('init')
     console.log('');
     console.log('Created:');
     console.log('  wiki/            — AI-maintained wiki pages');
+    console.log('  dossier/         — Read-only official dossier materials');
     console.log('  sources/         — Raw source documents');
     console.log('  wiki-purpose.md  — Wiki purpose and scope');
     console.log('  wiki-schema.md   — Page conventions and structure');

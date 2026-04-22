@@ -20,6 +20,7 @@ describe('init command', () => {
   it('should create vault structure', () => {
     execSync(`node ${CLI} init`, { cwd: testDir });
     expect(existsSync(join(testDir, 'wiki'))).toBe(true);
+    expect(existsSync(join(testDir, 'dossier'))).toBe(true);
     expect(existsSync(join(testDir, 'sources'))).toBe(true);
     expect(existsSync(join(testDir, 'wiki-purpose.md'))).toBe(true);
     expect(existsSync(join(testDir, 'wiki-schema.md'))).toBe(true);

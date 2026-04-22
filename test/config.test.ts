@@ -24,7 +24,10 @@ describe('config path resolution', () => {
 
     const paths = vaultPaths(testDir);
     expect(paths.config).toBe(join(testDir, '.llm-wiki-invest/config.toml'));
+    expect(paths.dossier).toBe(join(testDir, 'dossier'));
     expect(paths.syncState).toBe(join(testDir, '.llm-wiki-invest/sync-state.json'));
+    expect(paths.dossierState).toBe(join(testDir, '.llm-wiki-invest/dossier-state.json'));
+    expect(paths.dossierUnresolved).toBe(join(testDir, '.llm-wiki-invest/dossier-unresolved'));
   });
 
   it('should not recognize legacy .llm-wiki vaults', () => {
