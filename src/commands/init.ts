@@ -175,6 +175,7 @@ const CLAUDE_MD_TEMPLATE = `# LLM Wiki Invest
 - \`llm-wiki-invest graph\`：社区、枢纽页、孤儿页、待写页
 - \`llm-wiki-invest status\`：统计信息和健康摘要
 - \`llm-wiki-invest sync\`：跟踪 mtime / SHA256 变化，并在配置时推送 embedding 到 DB9
+- \`llm-wiki-invest dossier fetch-sec-submissions --cik ... [--recent]\`：抓取 SEC submissions 或最近 filings 摘要
 - \`llm-wiki-invest dossier init ...\`：初始化当前 vault 的 dossier 身份上下文
 - \`llm-wiki-invest dossier apply <manifest>\`：把 reviewed dossier manifest 物化到 \`dossier/\`
 - \`llm-wiki-invest dossier status\` / \`check\`：查看 dossier 覆盖状态并做结构检查
@@ -241,6 +242,7 @@ const AGENTS_MD_TEMPLATE = `# LLM Wiki Invest
 - \`llm-wiki-invest graph\`：社区、枢纽页、孤儿页、待写页
 - \`llm-wiki-invest status\`：统计信息和健康摘要
 - \`llm-wiki-invest sync\`：跟踪 mtime / SHA256 变化，并在配置时推送 embedding 到 DB9
+- \`llm-wiki-invest dossier fetch-sec-submissions --cik ... [--recent]\`：抓取 SEC submissions 或最近 filings 摘要
 - \`llm-wiki-invest dossier init ...\`：初始化当前 vault 的 dossier 身份上下文
 - \`llm-wiki-invest dossier apply <manifest>\`：把 reviewed dossier manifest 物化到 \`dossier/\`
 - \`llm-wiki-invest dossier status\` / \`check\`：查看 dossier 覆盖状态并做结构检查

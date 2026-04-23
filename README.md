@@ -113,6 +113,7 @@ Skill 暴露四个操作，它们都以斜杠命令的形式被调用：
 | 命令 | 说明 |
 |------|------|
 | `llm-wiki-invest init [dir]` | 初始化一个新的 wiki vault |
+| `llm-wiki-invest dossier fetch-sec-submissions --cik ... [--recent] [--forms ...]` | 抓取 SEC submissions JSON，或输出最近 filings 摘要 |
 | `llm-wiki-invest dossier init ...` | 初始化当前 vault 的 dossier 身份上下文 |
 | `llm-wiki-invest dossier apply <manifest>` | 把 reviewed dossier manifest 物化到 `dossier/` |
 | `llm-wiki-invest dossier status` | 展示 dossier 材料数、披露数、authority/type 统计与 unresolved 数 |

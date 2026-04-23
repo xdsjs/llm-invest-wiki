@@ -14,6 +14,7 @@ import type {
   DossierState,
 } from './dossier.js';
 import { vaultPaths } from './config.js';
+import { materializeSource } from './dossier-materialize.js';
 
 export interface ApplyResult {
   created: string[];
@@ -60,35 +61,6 @@ function hashBody(body: string): string {
   return createHash('sha256').update(body).digest('hex').slice(0, 16);
 }
 
-async function fetchAsMarkdown(input: DossierMaterialInput): Promise<{ body: string; retrievedAt: string }> {
-  const response = await fetch(input.source);
-  if (!response.ok) {
-    throw new Error(`fetch failed: ${response.status}`);
-  }
-
-  const contentType = (response.headers.get('content-type') ?? input.contentType ?? '').toLowerCase();
-  const retrievedAt = new Date().toISOString();
-
-  if (
-    contentType.startsWith('text/plain') ||
-    contentType.startsWith('text/markdown') ||
-    contentType.startsWith('text/html') ||
-    contentType.startsWith('application/json') ||
-    contentType.startsWith('application/xml') ||
-    contentType.startsWith('text/xml')
-  ) {
-    return { body: (await response.text()).trim(), retrievedAt };
-  }
-
-  if (contentType.startsWith('application/pdf')) {
-    const pdfParse = (await import('pdf-parse')).default;
-    const text = await pdfParse(Buffer.from(await response.arrayBuffer()));
-    return { body: text.text.trim(), retrievedAt };
-  }
-
-  throw new Error(`unsupported content-type: ${contentType || 'unknown'}`);
-}
-
 export async function applyManifest(root: string, manifest: DossierManifest): Promise<ApplyResult> {
   const paths = vaultPaths(root);
   mkdirSync(paths.dossier, { recursive: true });
@@ -102,7 +74,7 @@ export async function applyManifest(root: string, manifest: DossierManifest): Pr
     const identityKey = makeIdentityKey(material);
 
     try {
-      const { body, retrievedAt } = await fetchAsMarkdown(material);
+      const { body, retrievedAt } = await materializeSource(material);
       const contentHash = hashBody(body);
       const existing = state.materials[identityKey];
 
@@ -112,7 +84,6 @@ export async function applyManifest(root: string, manifest: DossierManifest): Pr
       }
 
       const relDir = buildDisclosureDir('dossier', {
-        authority: material.authority,
         documentType: material.documentType,
         published: material.published,
         disclosureKey: material.disclosureKey,

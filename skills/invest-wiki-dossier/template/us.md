@@ -26,8 +26,8 @@ scope: file-level-official-materials
    - `nasdaq`
    - `nyse`
    - `company`
-4. dossier 落盘的是**Markdown 派生件**，不是原始 PDF/HTML/XBRL 文件。
-5. 一份材料对应一个 `.md` 文件；同一次披露下的多个文件必须放到同一个 disclosure 目录。
+4. dossier 落盘的是通过 `markitdown` 物化出的**Markdown 派生件**，不是原始 PDF/HTML/XBRL 文件。
+5. 一份材料对应一个 `.md` 文件；同一次披露下，只有**同一种 `document_type`** 的多个文件才放到同一个 disclosure 目录。
 6. 所有 dossier 文件都必须带 YAML frontmatter，保留原始 URL 和发布日期。
 7. 发现不了、分类不稳、格式不支持时，进入 unresolved，不要猜。
 
@@ -55,6 +55,14 @@ scope: file-level-official-materials
 3. 公司 IR 首页
 
 必须至少通过两个官方入口交叉验证 `ticker / company_name / exchange`。
+
+建议优先使用：
+
+```bash
+llm-wiki-invest dossier fetch-sec-submissions --cik 0000320193 --recent --forms "10-K,10-Q,8-K,DEF 14A"
+```
+
+它可作为 SEC 官方抓取辅助，快速确认最近 filings 和基础身份字段。
 
 ## 允许的 discovery surface
 
@@ -130,7 +138,7 @@ scope: file-level-official-materials
 
 根路径固定为：
 
-`dossier/{authority}/{document_type}/{year}/{disclosure_key}/`
+`dossier/{document_type}/{year}/{disclosure_key}/`
 
 文件名固定为：
 
@@ -140,12 +148,12 @@ scope: file-level-official-materials
 
 - `sequence` 使用两位数字，从 `00` 开始
 - `disclosure_key` 代表一次披露事件
-- 同一次披露下的多个文件必须共享同一个 `disclosure_key`
+- 同一次披露下的同类型文件必须共享同一个 `disclosure_key`
 
 示例：
 
 ```text
-dossier/sec/8-k/2026/2026-02-01-0000320193-8-k/
+dossier/8-k/2026/2026-02-01-0000320193-8-k/
   00-primary-8-k.md
   01-ex99-1-press-release.md
   02-ex99-2-presentation.md

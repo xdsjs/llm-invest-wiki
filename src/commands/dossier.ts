@@ -6,6 +6,11 @@ import { loadDossierManifest } from '../lib/dossier.js';
 import type { DossierState } from '../lib/dossier.js';
 import { applyManifest } from '../lib/dossier-apply.js';
 import { auditDossier, summarizeDossier } from '../lib/dossier-audit.js';
+import {
+  fetchSecSubmissionsByCik,
+  parseFormsOption,
+  summarizeRecentSubmissions,
+} from '../lib/sec-submissions.js';
 
 function countUnresolvedFiles(dir: string): number {
   if (!existsSync(dir)) {
@@ -23,6 +28,30 @@ function countUnresolvedFiles(dir: string): number {
 
 export const dossierCommand = new Command('dossier')
   .description('Manage read-only dossier materials');
+
+dossierCommand
+  .command('fetch-sec-submissions')
+  .description('Fetch SEC submissions JSON or a recent-filings summary by CIK')
+  .requiredOption('--cik <cik>', 'SEC CIK')
+  .option('--recent', 'emit a recent-filings summary instead of the full submissions payload')
+  .option('--forms <forms>', 'comma-separated form filters, e.g. 10-K,10-Q,8-K,DEF 14A')
+  .action(async (opts: {
+    cik: string;
+    recent?: boolean;
+    forms?: string;
+  }) => {
+    const payload = await fetchSecSubmissionsByCik(opts.cik);
+    if (!opts.recent) {
+      console.log(JSON.stringify(payload, null, 2));
+      return;
+    }
+
+    console.log(JSON.stringify(
+      summarizeRecentSubmissions(payload, parseFormsOption(opts.forms)),
+      null,
+      2
+    ));
+  });
 
 dossierCommand
   .command('init')

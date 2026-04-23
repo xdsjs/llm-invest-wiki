@@ -17,8 +17,8 @@ afterEach(() => {
 
 describe('dossier audit', () => {
   it('should summarize dossier counts by authority and document type', () => {
-    mkdirSync(join(testDir, 'dossier/sec/10-k/2024/disclosure-a'), { recursive: true });
-    writeFileSync(join(testDir, 'dossier/sec/10-k/2024/disclosure-a/00-primary-10-k.md'), `---
+    mkdirSync(join(testDir, 'dossier/10-k/2024/disclosure-a'), { recursive: true });
+    writeFileSync(join(testDir, 'dossier/10-k/2024/disclosure-a/00-primary-10-k.md'), `---
 title: Apple 10-K
 source: https://sec.gov/10-k
 author: '[[sec.gov]]'
@@ -42,9 +42,9 @@ disclosure_key: 'disclosure-a'
   });
 
   it('should flag files with missing frontmatter', () => {
-    mkdirSync(join(testDir, 'dossier/sec/10-k/2024/disclosure-a'), { recursive: true });
+    mkdirSync(join(testDir, 'dossier/10-k/2024/disclosure-a'), { recursive: true });
     writeFileSync(
-      join(testDir, 'dossier/sec/10-k/2024/disclosure-a/00-primary-10-k.md'),
+      join(testDir, 'dossier/10-k/2024/disclosure-a/00-primary-10-k.md'),
       '# no frontmatter'
     );
 

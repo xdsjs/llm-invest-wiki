@@ -60,14 +60,13 @@ export function loadDossierManifest(filePath: string): DossierManifest {
 export function buildDisclosureDir(
   root: string,
   input: {
-    authority: DossierAuthority;
     documentType: string;
     published: string;
     disclosureKey: string;
   }
 ): string {
   const year = input.published.slice(0, 4);
-  return posix.join(root, input.authority, input.documentType, year, input.disclosureKey);
+  return posix.join(root, input.documentType, year, input.disclosureKey);
 }
 
 export function buildMaterialFilename(sequence: number, slug: string): string {

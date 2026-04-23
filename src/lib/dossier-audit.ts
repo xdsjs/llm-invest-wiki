@@ -43,8 +43,8 @@ export function summarizeDossier(dossierDir: string): DossierSummary {
     const { data } = matter(readFileSync(file, 'utf-8'));
     const rel = relative(dossierDir, file);
     const parts = splitRelativePath(rel);
-    if (parts.length >= 5) {
-      disclosures.add(parts.slice(0, 4).join('/'));
+    if (parts.length >= 4) {
+      disclosures.add(parts.slice(0, 3).join('/'));
     }
 
     if (typeof data.authority === 'string' && data.authority) {
@@ -76,16 +76,16 @@ export function auditDossier(dossierDir: string): DossierIssue[] {
     const rel = relative(dossierDir, file);
     const parts = splitRelativePath(rel);
 
-    if (parts.length < 5) {
+    if (parts.length < 4) {
       issues.push({
         type: 'bad_path_layout',
         path: rel,
-        detail: 'expected dossier/{authority}/{document_type}/{year}/{disclosure_key}/{file}',
+        detail: 'expected dossier/{document_type}/{year}/{disclosure_key}/{file}',
       });
       continue;
     }
 
-    const [authority, documentType, year, disclosureKey] = parts;
+    const [documentType, year, disclosureKey] = parts;
     const hasAnyFrontmatterField = REQUIRED_FRONTMATTER_FIELDS.some(field => data[field] != null);
 
     if (!hasAnyFrontmatterField) {
@@ -105,14 +105,6 @@ export function auditDossier(dossierDir: string): DossierIssue[] {
           detail: `missing required frontmatter field: ${field}`,
         });
       }
-    }
-
-    if (typeof data.authority === 'string' && data.authority !== authority) {
-      issues.push({
-        type: 'authority_mismatch',
-        path: rel,
-        detail: `path authority ${authority} does not match frontmatter ${data.authority}`,
-      });
     }
 
     if (typeof data.document_type === 'string' && data.document_type !== documentType) {
