@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import {
   buildDisclosureDir,
@@ -61,6 +61,33 @@ function hashBody(body: string): string {
   return createHash('sha256').update(body).digest('hex').slice(0, 16);
 }
 
+function sequenceKey(material: DossierMaterialInput): string {
+  return [
+    material.documentType,
+    material.published.slice(0, 4),
+    material.disclosureKey,
+    String(material.sequence),
+  ].join(':');
+}
+
+function hasSequenceConflict(outDir: string, sequence: number, targetName: string): boolean {
+  if (!existsSync(outDir)) {
+    return false;
+  }
+
+  const prefix = `${String(sequence).padStart(2, '0')}-`;
+  for (const entry of readdirSync(outDir, { withFileTypes: true })) {
+    if (!entry.isFile() || !entry.name.endsWith('.md')) {
+      continue;
+    }
+    if (entry.name.startsWith(prefix) && entry.name !== targetName) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 export async function applyManifest(root: string, manifest: DossierManifest): Promise<ApplyResult> {
   const paths = vaultPaths(root);
   mkdirSync(paths.dossier, { recursive: true });
@@ -69,11 +96,18 @@ export async function applyManifest(root: string, manifest: DossierManifest): Pr
 
   const state = loadDossierState(paths.dossierState, manifest.company);
   const result: ApplyResult = { created: [], skippedDuplicates: [], unresolved: [] };
+  const reservedSequences = new Set<string>();
 
   for (const material of manifest.materials) {
     const identityKey = makeIdentityKey(material);
 
     try {
+      const seqKey = sequenceKey(material);
+      if (reservedSequences.has(seqKey)) {
+        throw new Error(`duplicate sequence ${material.sequence} within ${material.documentType}/${material.disclosureKey}`);
+      }
+      reservedSequences.add(seqKey);
+
       const { body, retrievedAt } = await materializeSource(material);
       const contentHash = hashBody(body);
       const existing = state.materials[identityKey];
@@ -92,6 +126,10 @@ export async function applyManifest(root: string, manifest: DossierManifest): Pr
       mkdirSync(outDir, { recursive: true });
 
       const outPath = join(outDir, buildMaterialFilename(material.sequence, material.suggestedFilename));
+      if (hasSequenceConflict(outDir, material.sequence, buildMaterialFilename(material.sequence, material.suggestedFilename))) {
+        throw new Error(`duplicate sequence ${material.sequence} already exists in ${material.documentType}/${material.disclosureKey}`);
+      }
+
       const markdown = renderDossierMarkdown({
         title: material.title,
         source: material.source,
@@ -113,7 +151,7 @@ export async function applyManifest(root: string, manifest: DossierManifest): Pr
     } catch (error) {
       const unresolvedPath = join(
         paths.dossierUnresolved,
-        `${material.disclosureKey}-${material.sequence}.json`
+        `${material.disclosureKey}-${material.documentType}-${material.sequence}.json`
       );
       writeFileSync(unresolvedPath, JSON.stringify({
         material,

@@ -72,4 +72,38 @@ disclosure_key: 'orphan'
 
     expect(issues.some(issue => issue.type === 'bad_path_layout')).toBe(true);
   });
+
+  it('should flag duplicate sequence prefixes within one disclosure directory', () => {
+    mkdirSync(join(testDir, 'dossier/earnings-release/2026/disclosure-a'), { recursive: true });
+    writeFileSync(join(testDir, 'dossier/earnings-release/2026/disclosure-a/01-primary-release.md'), `---
+title: Release
+source: https://example.com/release
+author: '[[example.com]]'
+published: '2026-04-24'
+created: '2026-04-24'
+authority: 'company'
+document_type: 'earnings-release'
+disclosure_key: 'disclosure-a'
+---
+
+# body
+`);
+    writeFileSync(join(testDir, 'dossier/earnings-release/2026/disclosure-a/01-ex99-1-release.md'), `---
+title: Release copy
+source: https://example.com/release-copy
+author: '[[sec.gov]]'
+published: '2026-04-24'
+created: '2026-04-24'
+authority: 'sec'
+document_type: 'earnings-release'
+disclosure_key: 'disclosure-a'
+---
+
+# body
+`);
+
+    const issues = auditDossier(join(testDir, 'dossier'));
+
+    expect(issues.some(issue => issue.type === 'duplicate_sequence_prefix')).toBe(true);
+  });
 });

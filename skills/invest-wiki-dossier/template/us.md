@@ -20,7 +20,7 @@ scope: file-level-official-materials
 ## 总原则
 
 1. dossier 只收**文件级官方材料**，不收普通 HTML 页面本身。
-2. 官网、IR、newsroom、governance 页面只允许作为**发现文件链接的入口**。
+2. 官网、IR、newsroom、governance 页面默认只作为**发现文件链接的入口**；只有满足“canonical document page”条件的正式发布页，才允许作为 dossier 材料落盘。
 3. 进入 dossier 的材料必须来自以下 authority：
    - `sec`
    - `nasdaq`
@@ -29,7 +29,7 @@ scope: file-level-official-materials
 4. dossier 落盘的是通过 `markitdown` 物化出的**Markdown 派生件**，不是原始 PDF/HTML/XBRL 文件。
 5. 一份材料对应一个 `.md` 文件；同一次披露下，只有**同一种 `document_type`** 的多个文件才放到同一个 disclosure 目录。
 6. 所有 dossier 文件都必须带 YAML frontmatter，保留原始 URL 和发布日期。
-7. 发现不了、分类不稳、格式不支持时，进入 unresolved，不要猜。
+7. 发现不了、分类不稳、格式不支持、或物化后正文质量明显不可读时，进入 unresolved，不要猜。
 
 ## 明确排除
 
@@ -38,6 +38,7 @@ scope: file-level-official-materials
 - 非公司控制的镜像站、转载站、聚合站
 - 任何没有明确权威来源或控制权的链接
 - 公司官网中的普通介绍页、导航页、目录页本身
+- 纯导航性的 newsroom 列表页、IR 首页、下载中心索引页、FAQ 页
 
 ## 公司身份解析
 
@@ -73,6 +74,28 @@ llm-wiki-invest dossier fetch-sec-submissions --cik 0000320193 --recent --forms 
 - 公司 governance / filings / annual meeting / events 页面
 
 这些页面的作用是**发现文件链接**，不是作为 dossier 材料落盘。
+
+## 允许直接进入 dossier 的 HTML 页面
+
+只有同时满足下面条件的 HTML 页面，才允许直接进入 dossier：
+
+- 页面本身就是公司或监管机构发布的正式文件载体，而不是列表页或导航页
+- 页面 URL 稳定、可复用，且能代表该次披露的 canonical 文档页面
+- 页面正文包含完整正式内容，而不是“摘要 + 下载链接”的壳页面
+- 页面脱离导航、页眉、页脚后，仍能形成一份可读的独立文件
+
+典型允许示例：
+
+- SEC filing primary document HTML
+- 公司 Newsroom 中承载完整 earnings release 正文的发布页
+- 公司治理页面中承载完整章程或政策正文的 canonical 页面
+
+典型不允许示例：
+
+- Press Releases 列表页
+- Investor Relations 首页
+- 下载中心索引页
+- 只提供摘要和若干附件链接的目录页
 
 ## 允许进入 dossier 的文件类型
 
@@ -118,19 +141,20 @@ llm-wiki-invest dossier fetch-sec-submissions --cik 0000320193 --recent --forms 
 
 优先使用以下类型：
 
-- `10-k`
-- `10-q`
-- `8-k`
-- `20-f`
-- `6-k`
-- `proxy-statement`
-- `earnings-release`
-- `investor-presentation`
-- `transcript`
-- `annual-report`
-- `listing-notice`
-- `governance-document`
-- `other-official-filing`
+- `10-k`：SEC Form 10-K 年度报告正文。
+- `10-q`：SEC Form 10-Q 季度报告正文。
+- `8-k`：SEC Form 8-K 当前报告正文。
+- `20-f`：SEC Form 20-F 年度报告正文，通常用于外国发行人。
+- `6-k`：SEC Form 6-K 临时报告正文，通常用于外国发行人。
+- `proxy-statement`：正式股东大会委托投票说明书，如 DEF 14A。
+- `earnings-release`：季度或年度业绩发布正文，包括公司发布页或 SEC `EX-99.1` 这类业绩新闻稿。
+- `financial-statements`：业绩发布包中的财务报表附件，如 consolidated financial statements PDF；不是 10-Q / 10-K 本体。
+- `investor-presentation`：面向投资者的结果说明 deck、earnings presentation、investor presentation。
+- `transcript`：公司自有、公司控制渠道发布的电话会或业绩会逐字稿。
+- `annual-report`：公司发布的年报 PDF 或年报册页，但不是 SEC 10-K primary document 本体。
+- `listing-notice`：交易所发布的上市、停牌、恢复交易等正式通知文件。
+- `governance-document`：章程、bylaws、committee charter、code of conduct 等治理文件。
+- `other-official-filing`：确认为官方文件，但暂不适合归入上面任一明确类型的材料。
 
 如果无法稳定归类，不要硬猜，进入 unresolved。
 
@@ -149,6 +173,7 @@ llm-wiki-invest dossier fetch-sec-submissions --cik 0000320193 --recent --forms 
 - `sequence` 使用两位数字，从 `00` 开始
 - `disclosure_key` 代表一次披露事件
 - 同一次披露下的同类型文件必须共享同一个 `disclosure_key`
+- `sequence` 在同一个 `{document_type}/{disclosure_key}` 目录内必须唯一，不允许重复编号
 
 示例：
 
@@ -205,6 +230,23 @@ disclosure_key:
 - 两份不同发布日期的 `10-K` 是两份不同材料
 - 再次抓到同一材料时，应避免重复落盘
 
+## 等价官方材料处理
+
+当两个官方来源发布了**实质等价**的同一份材料时，按下面规则处理：
+
+- 如果两者都属于独立官方载体，可以同时保留，不要强行二选一
+- 两者应尽量共享同一个 `disclosure_key`
+- 两者应使用各自真实的 `authority`
+- 如果语义上属于同一类材料，应使用同一个 `document_type`
+- `sequence` 必须不同，通常把更接近 canonical document page 的材料排在更前面
+
+例子：
+
+- 公司 Newsroom earnings release 页面
+- 同次 8-K 中的 `EX-99.1` earnings release
+
+这两份都可以保留，但要分别记录来源，不要伪装成单一材料。
+
 ## reviewed manifest 要求
 
 在调用 CLI 前，你必须先产出 reviewed manifest。每个 material 至少包含：
@@ -222,6 +264,12 @@ disclosure_key:
 - `disclosureKey`
 - `sequence`
 - `suggestedFilename`
+
+额外要求：
+
+- `sequence` 必须在目标 disclosure 目录内唯一
+- 季度或年度财务报表附件不要误归为 `10-q` / `10-k`
+- 只有满足 “允许直接进入 dossier 的 HTML 页面” 规则的 HTML 页面才可直接落盘
 
 ## CLI 调用顺序
 
@@ -254,6 +302,7 @@ llm-wiki-invest dossier check
 - 无法确定 `published`
 - 无法判断是否为官方材料
 - 无法确定该文件属于哪个 `disclosure_key`
+- materialize 后正文主体仍然主要是导航、脚本、XBRL 噪音或不可读元数据
 
 ## 完整性检查
 

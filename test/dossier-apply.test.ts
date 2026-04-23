@@ -125,7 +125,7 @@ describe('applyManifest', () => {
 
     const unresolved = join(
       testDir,
-      '.llm-wiki-invest/dossier-unresolved/2026-02-01-q1-results-1.json'
+      '.llm-wiki-invest/dossier-unresolved/2026-02-01-q1-results-investor-presentation-1.json'
     );
 
     expect(result.unresolved).toEqual([unresolved]);
@@ -205,5 +205,61 @@ describe('applyManifest', () => {
     expect(result.created).toContain(
       join(testDir, 'dossier/earnings-release/2026/2026-02-01-q1-results/01-q1-statements.md')
     );
+  });
+
+  it('should write unresolved records when sequence is reused within the same disclosure directory', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('# Same disclosure', {
+      status: 200,
+      headers: { 'content-type': 'text/markdown; charset=utf-8' },
+    })) as typeof fetch);
+
+    const result = await applyManifest(testDir, {
+      company: { companyName: 'Apple Inc.', ticker: 'AAPL', market: 'us' },
+      generatedAt: '2026-04-24T10:00:00Z',
+      materials: [
+        {
+          companyName: 'Apple Inc.',
+          ticker: 'AAPL',
+          market: 'us',
+          authority: 'company',
+          title: 'Apple Q1 Release',
+          source: 'https://apple.example.com/q1-release.html',
+          canonicalUrl: 'https://apple.example.com/q1-release.html',
+          author: '[[apple.com]]',
+          published: '2026-02-01',
+          documentType: 'earnings-release',
+          disclosureKey: '2026-02-01-q1-results',
+          sequence: 0,
+          suggestedFilename: 'primary-release',
+          contentType: 'text/html',
+        },
+        {
+          companyName: 'Apple Inc.',
+          ticker: 'AAPL',
+          market: 'us',
+          authority: 'sec',
+          title: 'Apple Q1 Release Exhibit',
+          source: 'https://sec.example.com/ex99-1.htm',
+          canonicalUrl: 'https://sec.example.com/ex99-1.htm',
+          author: '[[sec.gov]]',
+          published: '2026-02-01',
+          documentType: 'earnings-release',
+          disclosureKey: '2026-02-01-q1-results',
+          sequence: 0,
+          suggestedFilename: 'ex99-1-release',
+          accessionNo: '0000320193-26-000005',
+          primaryDocument: 'ex99-1.htm',
+          contentType: 'text/html',
+        },
+      ],
+    });
+
+    expect(result.created).toEqual([
+      join(testDir, 'dossier/earnings-release/2026/2026-02-01-q1-results/00-primary-release.md'),
+    ]);
+    expect(result.unresolved).toEqual([
+      join(testDir, '.llm-wiki-invest/dossier-unresolved/2026-02-01-q1-results-earnings-release-0.json'),
+    ]);
+    expect(readFileSync(result.unresolved[0], 'utf-8')).toContain('duplicate sequence 0');
   });
 });

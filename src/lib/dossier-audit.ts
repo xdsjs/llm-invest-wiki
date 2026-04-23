@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { relative } from 'node:path';
+import { basename, dirname, relative } from 'node:path';
 import matter from 'gray-matter';
 import { listMarkdownFiles } from './wiki.js';
 
@@ -69,6 +69,7 @@ export function summarizeDossier(dossierDir: string): DossierSummary {
 
 export function auditDossier(dossierDir: string): DossierIssue[] {
   const issues: DossierIssue[] = [];
+  const sequenceUsage = new Map<string, Map<string, string[]>>();
 
   for (const file of listMarkdownFiles(dossierDir)) {
     const raw = readFileSync(file, 'utf-8');
@@ -128,6 +129,37 @@ export function auditDossier(dossierDir: string): DossierIssue[] {
         type: 'year_mismatch',
         path: rel,
         detail: `path year ${year} does not match published ${data.published}`,
+      });
+    }
+
+    const fileName = basename(file);
+    const sequenceMatch = fileName.match(/^(\d{2})-/);
+    if (!sequenceMatch) {
+      issues.push({
+        type: 'invalid_sequence_prefix',
+        path: rel,
+        detail: 'filename must start with a two-digit sequence prefix such as 00-',
+      });
+      continue;
+    }
+
+    const dirKey = dirname(rel);
+    const sequenceMap = sequenceUsage.get(dirKey) ?? new Map<string, string[]>();
+    const files = sequenceMap.get(sequenceMatch[1]) ?? [];
+    files.push(fileName);
+    sequenceMap.set(sequenceMatch[1], files);
+    sequenceUsage.set(dirKey, sequenceMap);
+  }
+
+  for (const [dirKey, sequenceMap] of sequenceUsage) {
+    for (const [sequence, files] of sequenceMap) {
+      if (files.length < 2) {
+        continue;
+      }
+      issues.push({
+        type: 'duplicate_sequence_prefix',
+        path: dirKey,
+        detail: `sequence ${sequence} is reused by multiple files: ${files.join(', ')}`,
       });
     }
   }
