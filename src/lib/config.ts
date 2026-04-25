@@ -51,8 +51,8 @@ export function loadConfig(vaultRoot: string): WikiConfig {
 export function vaultPaths(root: string) {
   return {
     wiki: join(root, 'wiki'),
-    dossier: join(root, 'dossier'),
     sources: join(root, 'sources'),
+    dossierSources: join(root, 'sources'),
     purpose: join(root, 'wiki-purpose.md'),
     schema: join(root, 'wiki-schema.md'),
     agent: join(root, 'wiki-agent.md'),
@@ -65,6 +65,7 @@ export function vaultPaths(root: string) {
     syncState: join(root, '.llm-wiki-invest/sync-state.json'),
     dossierState: join(root, '.llm-wiki-invest/dossier-state.json'),
     dossierUnresolved: join(root, '.llm-wiki-invest/dossier-unresolved'),
+    ingestPlans: join(root, '.llm-wiki-invest/ingest-plans'),
     lintResult: join(root, '.llm-wiki-invest/lint-result.yaml'),
     llmWikiDir: join(root, '.llm-wiki-invest'),
   };

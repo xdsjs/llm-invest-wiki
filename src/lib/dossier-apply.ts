@@ -90,7 +90,7 @@ function hasSequenceConflict(outDir: string, sequence: number, targetName: strin
 
 export async function applyManifest(root: string, manifest: DossierManifest): Promise<ApplyResult> {
   const paths = vaultPaths(root);
-  mkdirSync(paths.dossier, { recursive: true });
+  mkdirSync(paths.dossierSources, { recursive: true });
   mkdirSync(paths.dossierUnresolved, { recursive: true });
   mkdirSync(dirname(paths.dossierState), { recursive: true });
 
@@ -117,7 +117,7 @@ export async function applyManifest(root: string, manifest: DossierManifest): Pr
         continue;
       }
 
-      const relDir = buildDisclosureDir('dossier', {
+      const relDir = buildDisclosureDir('sources', {
         documentType: material.documentType,
         published: material.published,
         disclosureKey: material.disclosureKey,

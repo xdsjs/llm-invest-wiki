@@ -86,7 +86,7 @@ describe('dossier command', () => {
 
     const outPath = join(
       testDir,
-      'dossier/earnings-release/2026/2026-02-01-q1-results/00-primary-q1-release.md'
+      'sources/earnings-release/2026/2026-02-01-q1-results/00-primary-q1-release.md'
     );
 
     expect(output).toContain('Created: 1');
@@ -95,11 +95,11 @@ describe('dossier command', () => {
   });
 
   it('should show dossier status summary', () => {
-    mkdirSync(join(testDir, 'dossier/earnings-release/2026/2026-02-01-q1-results'), {
+    mkdirSync(join(testDir, 'sources/earnings-release/2026/2026-02-01-q1-results'), {
       recursive: true,
     });
     writeFileSync(
-      join(testDir, 'dossier/earnings-release/2026/2026-02-01-q1-results/00-primary-q1-release.md'),
+      join(testDir, 'sources/earnings-release/2026/2026-02-01-q1-results/00-primary-q1-release.md'),
       `---
 title: 'Apple Q1 Results Release'
 source: 'https://investor.apple.com/q1-release.md'
@@ -132,9 +132,9 @@ disclosure_key: '2026-02-01-q1-results'
   });
 
   it('should fail dossier check when dossier files are malformed', () => {
-    mkdirSync(join(testDir, 'dossier/10-k/2024/disclosure-a'), { recursive: true });
+    mkdirSync(join(testDir, 'sources/10-k/2024/disclosure-a'), { recursive: true });
     writeFileSync(
-      join(testDir, 'dossier/10-k/2024/disclosure-a/00-primary-10-k.md'),
+      join(testDir, 'sources/10-k/2024/disclosure-a/00-primary-10-k.md'),
       '# missing frontmatter'
     );
 

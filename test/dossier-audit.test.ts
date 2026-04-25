@@ -8,7 +8,7 @@ let testDir: string;
 
 beforeEach(() => {
   testDir = join(tmpdir(), `llm-wiki-invest-dossier-audit-${Date.now()}`);
-  mkdirSync(join(testDir, 'dossier'), { recursive: true });
+  mkdirSync(join(testDir, 'sources'), { recursive: true });
 });
 
 afterEach(() => {
@@ -17,8 +17,9 @@ afterEach(() => {
 
 describe('dossier audit', () => {
   it('should summarize dossier counts by authority and document type', () => {
-    mkdirSync(join(testDir, 'dossier/10-k/2024/disclosure-a'), { recursive: true });
-    writeFileSync(join(testDir, 'dossier/10-k/2024/disclosure-a/00-primary-10-k.md'), `---
+    mkdirSync(join(testDir, 'sources/10-k/2024/disclosure-a'), { recursive: true });
+    mkdirSync(join(testDir, 'sources/2026-04-24'), { recursive: true });
+    writeFileSync(join(testDir, 'sources/10-k/2024/disclosure-a/00-primary-10-k.md'), `---
 title: Apple 10-K
 source: https://sec.gov/10-k
 author: '[[sec.gov]]'
@@ -31,8 +32,15 @@ disclosure_key: 'disclosure-a'
 
 # body
 `);
+    writeFileSync(join(testDir, 'sources/2026-04-24/generic-note.md'), `---
+title: Generic Note
+url: https://example.com
+---
 
-    const summary = summarizeDossier(join(testDir, 'dossier'));
+# generic source
+`);
+
+    const summary = summarizeDossier(join(testDir, 'sources'));
 
     expect(summary.materialCount).toBe(1);
     expect(summary.disclosureCount).toBe(1);
@@ -41,20 +49,35 @@ disclosure_key: 'disclosure-a'
     expect(summary.latestPublished).toBe('2024-11-01');
   });
 
+  it('should ignore generic dated source files during dossier audit', () => {
+    mkdirSync(join(testDir, 'sources/2026-04-24'), { recursive: true });
+    writeFileSync(join(testDir, 'sources/2026-04-24/generic-note.md'), `---
+title: Generic Note
+url: https://example.com
+---
+
+# generic source
+`);
+
+    const issues = auditDossier(join(testDir, 'sources'));
+
+    expect(issues).toEqual([]);
+  });
+
   it('should flag files with missing frontmatter', () => {
-    mkdirSync(join(testDir, 'dossier/10-k/2024/disclosure-a'), { recursive: true });
+    mkdirSync(join(testDir, 'sources/10-k/2024/disclosure-a'), { recursive: true });
     writeFileSync(
-      join(testDir, 'dossier/10-k/2024/disclosure-a/00-primary-10-k.md'),
+      join(testDir, 'sources/10-k/2024/disclosure-a/00-primary-10-k.md'),
       '# no frontmatter'
     );
 
-    const issues = auditDossier(join(testDir, 'dossier'));
+    const issues = auditDossier(join(testDir, 'sources'));
 
     expect(issues.some(issue => issue.type === 'missing_frontmatter')).toBe(true);
   });
 
   it('should flag files with bad path layout', () => {
-    writeFileSync(join(testDir, 'dossier/orphan.md'), `---
+    writeFileSync(join(testDir, 'sources/orphan.md'), `---
 title: Orphan
 source: https://example.com/orphan
 author: '[[example.com]]'
@@ -68,14 +91,14 @@ disclosure_key: 'orphan'
 # body
 `);
 
-    const issues = auditDossier(join(testDir, 'dossier'));
+    const issues = auditDossier(join(testDir, 'sources'));
 
     expect(issues.some(issue => issue.type === 'bad_path_layout')).toBe(true);
   });
 
   it('should flag duplicate sequence prefixes within one disclosure directory', () => {
-    mkdirSync(join(testDir, 'dossier/earnings-release/2026/disclosure-a'), { recursive: true });
-    writeFileSync(join(testDir, 'dossier/earnings-release/2026/disclosure-a/01-primary-release.md'), `---
+    mkdirSync(join(testDir, 'sources/earnings-release/2026/disclosure-a'), { recursive: true });
+    writeFileSync(join(testDir, 'sources/earnings-release/2026/disclosure-a/01-primary-release.md'), `---
 title: Release
 source: https://example.com/release
 author: '[[example.com]]'
@@ -88,7 +111,7 @@ disclosure_key: 'disclosure-a'
 
 # body
 `);
-    writeFileSync(join(testDir, 'dossier/earnings-release/2026/disclosure-a/01-ex99-1-release.md'), `---
+    writeFileSync(join(testDir, 'sources/earnings-release/2026/disclosure-a/01-ex99-1-release.md'), `---
 title: Release copy
 source: https://example.com/release-copy
 author: '[[sec.gov]]'
@@ -102,7 +125,7 @@ disclosure_key: 'disclosure-a'
 # body
 `);
 
-    const issues = auditDossier(join(testDir, 'dossier'));
+    const issues = auditDossier(join(testDir, 'sources'));
 
     expect(issues.some(issue => issue.type === 'duplicate_sequence_prefix')).toBe(true);
   });

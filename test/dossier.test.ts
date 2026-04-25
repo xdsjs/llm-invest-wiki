@@ -23,11 +23,11 @@ afterEach(() => {
 
 describe('dossier helpers', () => {
   it('should build disclosure paths from document type, year, and disclosure key', () => {
-    expect(buildDisclosureDir('dossier', {
+    expect(buildDisclosureDir('sources', {
       documentType: '8-k',
       published: '2026-02-01',
       disclosureKey: '2026-02-01-0000320193-8-k',
-    })).toBe('dossier/8-k/2026/2026-02-01-0000320193-8-k');
+    })).toBe('sources/8-k/2026/2026-02-01-0000320193-8-k');
   });
 
   it('should build sequence-prefixed filenames', () => {

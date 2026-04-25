@@ -27,7 +27,7 @@ function countUnresolvedFiles(dir: string): number {
 }
 
 export const dossierCommand = new Command('dossier')
-  .description('Manage read-only dossier materials');
+  .description('Manage read-only official source materials');
 
 dossierCommand
   .command('fetch-sec-submissions')
@@ -71,7 +71,7 @@ dossierCommand
     const root = requireVaultRoot();
     const paths = vaultPaths(root);
 
-    mkdirSync(paths.dossier, { recursive: true });
+    mkdirSync(paths.dossierSources, { recursive: true });
     mkdirSync(dirname(paths.dossierState), { recursive: true });
 
     const state: DossierState = {
@@ -105,11 +105,11 @@ dossierCommand
 
 dossierCommand
   .command('status')
-  .description('Show dossier coverage and unresolved summary')
+  .description('Show official source coverage and unresolved summary')
   .action(() => {
     const root = requireVaultRoot();
     const paths = vaultPaths(root);
-    const summary = summarizeDossier(paths.dossier);
+    const summary = summarizeDossier(paths.dossierSources);
     const unresolvedCount = countUnresolvedFiles(paths.dossierUnresolved);
 
     if (existsSync(paths.dossierState)) {
@@ -149,11 +149,11 @@ dossierCommand
 
 dossierCommand
   .command('check')
-  .description('Audit dossier structure and required frontmatter')
+  .description('Audit official source structure and required frontmatter')
   .action(() => {
     const root = requireVaultRoot();
     const paths = vaultPaths(root);
-    const issues = auditDossier(paths.dossier);
+    const issues = auditDossier(paths.dossierSources);
 
     if (issues.length === 0) {
       console.log('Dossier check: OK');

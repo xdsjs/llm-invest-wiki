@@ -10,7 +10,7 @@ let markitdownBin: string;
 
 beforeEach(() => {
   testDir = join(tmpdir(), `llm-wiki-invest-apply-${Date.now()}`);
-  mkdirSync(join(testDir, 'dossier'), { recursive: true });
+  mkdirSync(join(testDir, 'sources'), { recursive: true });
   mkdirSync(join(testDir, '.llm-wiki-invest'), { recursive: true });
   markitdownBin = installMockMarkitdown(join(testDir, 'bin'));
   process.env.LLM_WIKI_MARKITDOWN_BIN = markitdownBin;
@@ -52,7 +52,7 @@ describe('applyManifest', () => {
 
     const out = join(
       testDir,
-      'dossier/earnings-release/2026/2026-02-01-q1-results/00-primary-q1-release.md'
+      'sources/earnings-release/2026/2026-02-01-q1-results/00-primary-q1-release.md'
     );
 
     expect(result.created).toEqual([out]);
@@ -197,13 +197,13 @@ describe('applyManifest', () => {
     });
 
     expect(result.created).toContain(
-      join(testDir, 'dossier/8-k/2026/2026-02-01-q1-results/00-primary-8-k.md')
+      join(testDir, 'sources/8-k/2026/2026-02-01-q1-results/00-primary-8-k.md')
     );
     expect(result.created).toContain(
-      join(testDir, 'dossier/earnings-release/2026/2026-02-01-q1-results/00-primary-q1-release.md')
+      join(testDir, 'sources/earnings-release/2026/2026-02-01-q1-results/00-primary-q1-release.md')
     );
     expect(result.created).toContain(
-      join(testDir, 'dossier/earnings-release/2026/2026-02-01-q1-results/01-q1-statements.md')
+      join(testDir, 'sources/earnings-release/2026/2026-02-01-q1-results/01-q1-statements.md')
     );
   });
 
@@ -255,7 +255,7 @@ describe('applyManifest', () => {
     });
 
     expect(result.created).toEqual([
-      join(testDir, 'dossier/earnings-release/2026/2026-02-01-q1-results/00-primary-release.md'),
+      join(testDir, 'sources/earnings-release/2026/2026-02-01-q1-results/00-primary-release.md'),
     ]);
     expect(result.unresolved).toEqual([
       join(testDir, '.llm-wiki-invest/dossier-unresolved/2026-02-01-q1-results-earnings-release-0.json'),

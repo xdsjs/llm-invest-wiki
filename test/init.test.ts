@@ -20,12 +20,13 @@ describe('init command', () => {
   it('should create vault structure', () => {
     execSync(`node ${CLI} init`, { cwd: testDir });
     expect(existsSync(join(testDir, 'wiki'))).toBe(true);
-    expect(existsSync(join(testDir, 'dossier'))).toBe(true);
+    expect(existsSync(join(testDir, 'dossier'))).toBe(false);
     expect(existsSync(join(testDir, 'sources'))).toBe(true);
     expect(existsSync(join(testDir, 'wiki-purpose.md'))).toBe(true);
     expect(existsSync(join(testDir, 'wiki-schema.md'))).toBe(true);
     expect(existsSync(join(testDir, 'wiki-log.md'))).toBe(true);
     expect(existsSync(join(testDir, '.llm-wiki-invest/config.toml'))).toBe(true);
+    expect(existsSync(join(testDir, '.llm-wiki-invest/ingest-plans'))).toBe(true);
     // v0.4.2 rename: old unprefixed names must not be created
     expect(existsSync(join(testDir, 'purpose.md'))).toBe(false);
     expect(existsSync(join(testDir, 'schema.md'))).toBe(false);
@@ -44,6 +45,8 @@ describe('init command', () => {
     const agentsSkill = join(testDir, '.agents/skills/llm-wiki-invest.md');
     const claudeDossier = join(testDir, '.claude/skills/invest-wiki-dossier');
     const agentsDossier = join(testDir, '.agents/skills/invest-wiki-dossier');
+    const claudeIngest = join(testDir, '.claude/skills/invest-wiki-ingest');
+    const agentsIngest = join(testDir, '.agents/skills/invest-wiki-ingest');
     expect(existsSync(claudeSkill)).toBe(true);
     expect(existsSync(agentsSkill)).toBe(true);
     expect(existsSync(join(claudeDossier, 'SKILL.md'))).toBe(true);
@@ -52,6 +55,10 @@ describe('init command', () => {
     expect(existsSync(join(agentsDossier, 'SKILL.md'))).toBe(true);
     expect(existsSync(join(agentsDossier, 'agents/openai.yaml'))).toBe(true);
     expect(existsSync(join(agentsDossier, 'template/us.md'))).toBe(true);
+    expect(existsSync(join(claudeIngest, 'SKILL.md'))).toBe(true);
+    expect(existsSync(join(claudeIngest, 'template/company.md'))).toBe(true);
+    expect(existsSync(join(agentsIngest, 'SKILL.md'))).toBe(true);
+    expect(existsSync(join(agentsIngest, 'template/company.md'))).toBe(true);
     // Content must match (not just empty file)
     const claudeContent = readFileSync(claudeSkill, 'utf-8');
     const agentsContent = readFileSync(agentsSkill, 'utf-8');

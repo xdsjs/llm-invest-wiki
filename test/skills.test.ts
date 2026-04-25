@@ -20,6 +20,7 @@ describe('skills library', () => {
     const skills = listSkills(getSkillsDir());
     expect(skills).toContain('llm-wiki-invest');
     expect(skills).toContain('invest-wiki-dossier');
+    expect(skills).toContain('invest-wiki-ingest');
   });
 
   it('should resolve bundled skills to their SKILL.md entry point', () => {
@@ -33,10 +34,13 @@ describe('skills library', () => {
     const { installed } = installSkillsTo(testDir);
 
     expect(installed).toContain('invest-wiki-dossier');
+    expect(installed).toContain('invest-wiki-ingest');
     expect(existsSync(join(testDir, 'llm-wiki-invest.md'))).toBe(true);
     expect(existsSync(join(testDir, 'invest-wiki-dossier', 'SKILL.md'))).toBe(true);
     expect(existsSync(join(testDir, 'invest-wiki-dossier', 'agents', 'openai.yaml'))).toBe(true);
     expect(existsSync(join(testDir, 'invest-wiki-dossier', 'template', 'us.md'))).toBe(true);
+    expect(existsSync(join(testDir, 'invest-wiki-ingest', 'SKILL.md'))).toBe(true);
+    expect(existsSync(join(testDir, 'invest-wiki-ingest', 'template', 'company.md'))).toBe(true);
   });
 
   it('should not overwrite an existing bundled skill when overwrite is false', () => {

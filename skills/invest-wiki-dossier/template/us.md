@@ -5,11 +5,11 @@ version: 2
 scope: file-level-official-materials
 ---
 
-# 美国上市公司 dossier 模板
+# 美国上市公司建档模板
 
 ## 适用范围
 
-- 只用于单家美国上市公司 dossier
+- 只用于单家美国上市公司官方来源建档
 - 只收文件级官方材料
 - `authority` 仅允许：`sec`、`nasdaq`、`nyse`、`company`
 
@@ -44,7 +44,7 @@ llm-wiki-invest dossier fetch-sec-submissions --cik 0000320193 --recent --forms 
 - 交易所官方公司资料页
 - 公司 IR、newsroom、governance、annual meeting、events 页面
 
-这些页面默认只用于发现文件链接，不直接进入 dossier。
+这些页面默认只用于发现文件链接，不直接进入 sources。
 
 ### 明确排除
 
@@ -53,7 +53,7 @@ llm-wiki-invest dossier fetch-sec-submissions --cik 0000320193 --recent --forms 
 - 普通介绍页、导航页、目录页、FAQ 页
 - newsroom 列表页、IR 首页、下载中心索引页本身
 
-### 可直接进入 dossier 的 HTML 页面
+### 可直接进入 sources 的 HTML 页面
 
 只有同时满足以下条件才允许直接落盘：
 
@@ -119,7 +119,7 @@ llm-wiki-invest dossier fetch-sec-submissions --cik 0000320193 --recent --forms 
 
 目录固定为：
 
-`dossier/{document_type}/{year}/{disclosure_key}/`
+`sources/{document_type}/{year}/{disclosure_key}/`
 
 文件名固定为：
 
@@ -142,7 +142,7 @@ llm-wiki-invest dossier fetch-sec-submissions --cik 0000320193 --recent --forms 
 
 ## frontmatter 最小字段
 
-每个 dossier 文件必须包含：
+每个官方来源文件必须包含：
 
 ```yaml
 ---

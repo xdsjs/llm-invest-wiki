@@ -9,6 +9,7 @@ import { statusCommand } from './commands/status.js';
 import { syncCommand } from './commands/sync.js';
 import { skillCommand } from './commands/skill.js';
 import { dossierCommand } from './commands/dossier.js';
+import { sourcesCommand } from './commands/sources.js';
 
 const pkgPath = join(dirname(fileURLToPath(import.meta.url)), '..', 'package.json');
 const { version } = JSON.parse(readFileSync(pkgPath, 'utf8')) as { version: string };
@@ -27,5 +28,6 @@ program.addCommand(statusCommand);
 program.addCommand(syncCommand);
 program.addCommand(skillCommand);
 program.addCommand(dossierCommand);
+program.addCommand(sourcesCommand);
 
 program.parse();

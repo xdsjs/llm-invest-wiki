@@ -14,6 +14,8 @@ const REQUIRED_FRONTMATTER_FIELDS = [
   'disclosure_key',
 ] as const;
 
+const DOSSIER_MARKER_FIELDS = ['authority', 'document_type', 'disclosure_key'] as const;
+
 export interface DossierIssue {
   type: string;
   path: string;
@@ -32,17 +34,31 @@ function splitRelativePath(filePath: string): string[] {
   return filePath.split(/[\\/]/);
 }
 
+function hasDossierMarker(data: Record<string, unknown>): boolean {
+  return DOSSIER_MARKER_FIELDS.some(field => typeof data[field] === 'string' && data[field] !== '');
+}
+
+function looksLikeDossierPath(parts: string[]): boolean {
+  return parts.length >= 4 && /^\d{4}$/.test(parts[1] ?? '');
+}
+
 export function summarizeDossier(dossierDir: string): DossierSummary {
   const files = listMarkdownFiles(dossierDir);
   const disclosures = new Set<string>();
   const byAuthority: Record<string, number> = {};
   const byDocumentType: Record<string, number> = {};
   let latestPublished = '';
+  let materialCount = 0;
 
   for (const file of files) {
     const { data } = matter(readFileSync(file, 'utf-8'));
     const rel = relative(dossierDir, file);
     const parts = splitRelativePath(rel);
+    if (!hasDossierMarker(data)) {
+      continue;
+    }
+
+    materialCount++;
     if (parts.length >= 4) {
       disclosures.add(parts.slice(0, 3).join('/'));
     }
@@ -59,7 +75,7 @@ export function summarizeDossier(dossierDir: string): DossierSummary {
   }
 
   return {
-    materialCount: files.length,
+    materialCount,
     disclosureCount: disclosures.size,
     byAuthority,
     byDocumentType,
@@ -76,12 +92,17 @@ export function auditDossier(dossierDir: string): DossierIssue[] {
     const { data } = matter(raw);
     const rel = relative(dossierDir, file);
     const parts = splitRelativePath(rel);
+    const shouldAudit = hasDossierMarker(data) || looksLikeDossierPath(parts);
+
+    if (!shouldAudit) {
+      continue;
+    }
 
     if (parts.length < 4) {
       issues.push({
         type: 'bad_path_layout',
         path: rel,
-        detail: 'expected dossier/{document_type}/{year}/{disclosure_key}/{file}',
+        detail: 'expected sources/{document_type}/{year}/{disclosure_key}/{file}',
       });
       continue;
     }
