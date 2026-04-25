@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import { requireVaultRoot } from '../lib/config.js';
 import {
   listPendingSourceGroups,
+  listPendingSourceGroupsForPath,
   markSourcesIngested,
 } from '../lib/source-ingest.js';
 
@@ -18,11 +19,14 @@ export const sourcesCommand = new Command('sources')
 sourcesCommand
   .command('pending')
   .description('List sources that have not been ingested or have changed since ingest')
+  .argument('[path]', 'optional source file/directory or dossier run directory')
   .option('--all', 'include already-ingested clean sources')
   .option('--json', 'emit JSON')
-  .action((opts: { all?: boolean; json?: boolean }) => {
+  .action((inputPath: string | undefined, opts: { all?: boolean; json?: boolean }) => {
     const root = requireVaultRoot();
-    const groups = listPendingSourceGroups(root, Boolean(opts.all));
+    const groups = inputPath
+      ? listPendingSourceGroupsForPath(root, inputPath, Boolean(opts.all))
+      : listPendingSourceGroups(root, Boolean(opts.all));
 
     if (opts.json) {
       console.log(JSON.stringify({ groups }, null, 2));

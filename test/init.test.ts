@@ -27,6 +27,7 @@ describe('init command', () => {
     expect(existsSync(join(testDir, 'wiki-log.md'))).toBe(true);
     expect(existsSync(join(testDir, '.llm-wiki-invest/config.toml'))).toBe(true);
     expect(existsSync(join(testDir, '.llm-wiki-invest/ingest-plans'))).toBe(true);
+    expect(existsSync(join(testDir, '.llm-wiki-invest/dossier-runs'))).toBe(true);
     // v0.4.2 rename: old unprefixed names must not be created
     expect(existsSync(join(testDir, 'purpose.md'))).toBe(false);
     expect(existsSync(join(testDir, 'schema.md'))).toBe(false);
@@ -41,14 +42,26 @@ describe('init command', () => {
 
   it('should auto-install skills to both agent dirs', () => {
     execSync(`node ${CLI} init`, { cwd: testDir });
-    const claudeSkill = join(testDir, '.claude/skills/llm-wiki-invest.md');
-    const agentsSkill = join(testDir, '.agents/skills/llm-wiki-invest.md');
+    const claudeSkill = join(testDir, '.claude/skills/invest-wiki-flow');
+    const agentsSkill = join(testDir, '.agents/skills/invest-wiki-flow');
     const claudeDossier = join(testDir, '.claude/skills/invest-wiki-dossier');
     const agentsDossier = join(testDir, '.agents/skills/invest-wiki-dossier');
     const claudeIngest = join(testDir, '.claude/skills/invest-wiki-ingest');
     const agentsIngest = join(testDir, '.agents/skills/invest-wiki-ingest');
-    expect(existsSync(claudeSkill)).toBe(true);
-    expect(existsSync(agentsSkill)).toBe(true);
+    const claudeQuery = join(testDir, '.claude/skills/invest-wiki-query');
+    const agentsQuery = join(testDir, '.agents/skills/invest-wiki-query');
+    const claudeLint = join(testDir, '.claude/skills/invest-wiki-lint');
+    const agentsLint = join(testDir, '.agents/skills/invest-wiki-lint');
+    const claudeResearch = join(testDir, '.claude/skills/invest-wiki-research');
+    const agentsResearch = join(testDir, '.agents/skills/invest-wiki-research');
+    expect(existsSync(join(claudeSkill, 'SKILL.md'))).toBe(true);
+    expect(existsSync(join(claudeSkill, 'template/listed-company-ingest-plan.md'))).toBe(true);
+    expect(existsSync(join(agentsSkill, 'SKILL.md'))).toBe(true);
+    expect(existsSync(join(agentsSkill, 'template/listed-company-ingest-plan.md'))).toBe(true);
+    expect(existsSync(join(testDir, '.claude/skills/llm-wiki-invest.md'))).toBe(false);
+    expect(existsSync(join(testDir, '.agents/skills/llm-wiki-invest.md'))).toBe(false);
+    expect(existsSync(join(testDir, '.claude/skills/llm-wiki-invest'))).toBe(false);
+    expect(existsSync(join(testDir, '.agents/skills/llm-wiki-invest'))).toBe(false);
     expect(existsSync(join(claudeDossier, 'SKILL.md'))).toBe(true);
     expect(existsSync(join(claudeDossier, 'agents/openai.yaml'))).toBe(true);
     expect(existsSync(join(claudeDossier, 'template/us.md'))).toBe(true);
@@ -56,12 +69,18 @@ describe('init command', () => {
     expect(existsSync(join(agentsDossier, 'agents/openai.yaml'))).toBe(true);
     expect(existsSync(join(agentsDossier, 'template/us.md'))).toBe(true);
     expect(existsSync(join(claudeIngest, 'SKILL.md'))).toBe(true);
-    expect(existsSync(join(claudeIngest, 'template/listed-company-plan.md'))).toBe(true);
+    expect(existsSync(join(claudeIngest, 'template/listed-company-plan.md'))).toBe(false);
     expect(existsSync(join(agentsIngest, 'SKILL.md'))).toBe(true);
-    expect(existsSync(join(agentsIngest, 'template/listed-company-plan.md'))).toBe(true);
+    expect(existsSync(join(agentsIngest, 'template/listed-company-plan.md'))).toBe(false);
+    expect(existsSync(join(claudeQuery, 'SKILL.md'))).toBe(true);
+    expect(existsSync(join(agentsQuery, 'SKILL.md'))).toBe(true);
+    expect(existsSync(join(claudeLint, 'SKILL.md'))).toBe(true);
+    expect(existsSync(join(agentsLint, 'SKILL.md'))).toBe(true);
+    expect(existsSync(join(claudeResearch, 'SKILL.md'))).toBe(true);
+    expect(existsSync(join(agentsResearch, 'SKILL.md'))).toBe(true);
     // Content must match (not just empty file)
-    const claudeContent = readFileSync(claudeSkill, 'utf-8');
-    const agentsContent = readFileSync(agentsSkill, 'utf-8');
+    const claudeContent = readFileSync(join(claudeSkill, 'SKILL.md'), 'utf-8');
+    const agentsContent = readFileSync(join(agentsSkill, 'SKILL.md'), 'utf-8');
     expect(claudeContent.length).toBeGreaterThan(100);
     expect(claudeContent).toEqual(agentsContent);
   });
@@ -76,7 +95,8 @@ describe('init command', () => {
 
     expect(readFileSync(join(claudeSkillDir, 'llm-wiki-invest.md'), 'utf-8')).toEqual(customContent);
     // Fresh dir still gets the bundled skill
-    expect(existsSync(join(testDir, '.agents/skills/llm-wiki-invest.md'))).toBe(true);
+    expect(existsSync(join(testDir, '.claude/skills/llm-wiki-invest'))).toBe(false);
+    expect(existsSync(join(testDir, '.agents/skills/invest-wiki-flow/SKILL.md'))).toBe(true);
   });
 
   it('should not overwrite existing files', () => {

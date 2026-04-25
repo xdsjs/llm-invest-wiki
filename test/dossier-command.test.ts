@@ -78,7 +78,7 @@ describe('dossier command', () => {
       }],
     }, null, 2));
 
-    const output = execSync(`node ${CLI} dossier apply ${manifestPath}`, {
+    const output = execSync(`node ${CLI} dossier apply ${manifestPath} --run-id 2026-04-25-aapl`, {
       cwd: testDir,
       encoding: 'utf-8',
       env,
@@ -90,8 +90,10 @@ describe('dossier command', () => {
     );
 
     expect(output).toContain('Created: 1');
+    expect(output).toContain('Run: .llm-wiki-invest/dossier-runs/2026-04-25-aapl');
     expect(existsSync(outPath)).toBe(true);
     expect(readFileSync(outPath, 'utf-8')).toContain("title: 'Apple Q1 Results Release'");
+    expect(existsSync(join(testDir, '.llm-wiki-invest/dossier-runs/2026-04-25-aapl/report.md'))).toBe(true);
   });
 
   it('should show dossier status summary', () => {

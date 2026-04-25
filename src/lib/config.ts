@@ -65,6 +65,7 @@ export function vaultPaths(root: string) {
     syncState: join(root, '.llm-wiki-invest/sync-state.json'),
     dossierState: join(root, '.llm-wiki-invest/dossier-state.json'),
     dossierUnresolved: join(root, '.llm-wiki-invest/dossier-unresolved'),
+    dossierRuns: join(root, '.llm-wiki-invest/dossier-runs'),
     ingestPlans: join(root, '.llm-wiki-invest/ingest-plans'),
     lintResult: join(root, '.llm-wiki-invest/lint-result.yaml'),
     llmWikiDir: join(root, '.llm-wiki-invest'),

@@ -47,6 +47,95 @@ published: 2026-02-01
     expect(payload.groups[0].sources[0].status).toBe('new');
   });
 
+  it('should scope pending output to a source subtree', () => {
+    const releaseDir = join(testDir, 'sources/earnings-release/2026/q1-results');
+    const filingDir = join(testDir, 'sources/10-q/2026/q1-10-q');
+    mkdirSync(releaseDir, { recursive: true });
+    mkdirSync(filingDir, { recursive: true });
+    writeFileSync(join(releaseDir, '00-release.md'), `---
+title: Release
+source: https://example.com/release
+authority: company
+document_type: earnings-release
+disclosure_key: q1-results
+published: 2026-02-01
+---
+
+# release
+`);
+    writeFileSync(join(filingDir, '00-10-q.md'), `---
+title: 10-Q
+source: https://example.com/10-q
+authority: sec
+document_type: 10-q
+disclosure_key: q1-10-q
+published: 2026-02-02
+---
+
+# filing
+`);
+
+    const output = execSync(`node ${CLI} sources pending sources/earnings-release --json`, {
+      cwd: testDir,
+      encoding: 'utf-8',
+    });
+    const payload = JSON.parse(output) as {
+      groups: Array<{ path: string; sources: Array<{ path: string }> }>;
+    };
+
+    expect(payload.groups).toHaveLength(1);
+    expect(payload.groups[0].sources).toHaveLength(1);
+    expect(payload.groups[0].sources[0].path).toBe('sources/earnings-release/2026/q1-results/00-release.md');
+  });
+
+  it('should resolve pending sources from a dossier run result', () => {
+    const runDir = join(testDir, '.llm-wiki-invest/dossier-runs/2026-04-25-aapl');
+    const releaseDir = join(testDir, 'sources/earnings-release/2026/q1-results');
+    const filingDir = join(testDir, 'sources/10-q/2026/q1-10-q');
+    mkdirSync(runDir, { recursive: true });
+    mkdirSync(releaseDir, { recursive: true });
+    mkdirSync(filingDir, { recursive: true });
+    writeFileSync(join(releaseDir, '00-release.md'), `---
+title: Release
+source: https://example.com/release
+authority: company
+document_type: earnings-release
+disclosure_key: q1-results
+published: 2026-02-01
+---
+
+# release
+`);
+    writeFileSync(join(filingDir, '00-10-q.md'), `---
+title: 10-Q
+source: https://example.com/10-q
+authority: sec
+document_type: 10-q
+disclosure_key: q1-10-q
+published: 2026-02-02
+---
+
+# filing
+`);
+    writeFileSync(join(runDir, 'result.json'), JSON.stringify({
+      created: ['sources/10-q/2026/q1-10-q/00-10-q.md'],
+      skippedDuplicates: [],
+      unresolved: [],
+    }, null, 2));
+
+    const output = execSync(`node ${CLI} sources pending .llm-wiki-invest/dossier-runs/2026-04-25-aapl --json`, {
+      cwd: testDir,
+      encoding: 'utf-8',
+    });
+    const payload = JSON.parse(output) as {
+      groups: Array<{ path: string; sources: Array<{ path: string }> }>;
+    };
+
+    expect(payload.groups).toHaveLength(1);
+    expect(payload.groups[0].sources).toHaveLength(1);
+    expect(payload.groups[0].sources[0].path).toBe('sources/10-q/2026/q1-10-q/00-10-q.md');
+  });
+
   it('should mark sources as ingested with wiki page references', () => {
     const sourceDir = join(testDir, 'sources/earnings-release/2026/q1-results');
     const sourcePath = join(sourceDir, '00-release.md');

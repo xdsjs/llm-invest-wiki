@@ -1,8 +1,9 @@
 export const AGENTS_MD_TEMPLATE = `# LLM Wiki Invest
 
-当前工作区是一个 LLM Wiki Invest vault。所有 wiki 相关操作都使用
-\`llm-wiki-invest\` skill。主 skill 位于 \`.agents/skills/llm-wiki-invest.md\`；
-完整 \`/ingest\` 流程位于 \`.agents/skills/invest-wiki-ingest/SKILL.md\`。
+当前工作区是一个 LLM Wiki Invest vault。每日维护任务使用
+\`invest-wiki-flow\` skill。主 skill 位于 \`.agents/skills/invest-wiki-flow/SKILL.md\`，
+定位是每日 dossier → ingest workflow：先调用 \`invest-wiki-dossier\`
+维护官方 sources，再调用 \`invest-wiki-ingest\` 摄取新增或变化的 source。
 Codex 会按需加载这些 skill。
 
 ## Agent 身份
@@ -54,15 +55,15 @@ Codex 会按需加载这些 skill。
 - \`llm-wiki-invest sync\`：跟踪 mtime / SHA256 变化，并在配置时推送 embedding 到 DB9
 - \`llm-wiki-invest dossier fetch-sec-submissions --cik ... [--recent]\`：抓取 SEC submissions 或最近 filings 摘要
 - \`llm-wiki-invest dossier init ...\`：初始化当前 vault 的 dossier 身份上下文
-- \`llm-wiki-invest dossier apply <manifest>\`：把 reviewed dossier manifest 物化到 \`sources/\`
+- \`llm-wiki-invest dossier apply <manifest> [--run-id <id>]\`：建立 dossier run 记录，并把 reviewed manifest 物化到 \`sources/\`
 - \`llm-wiki-invest dossier status\` / \`check\`：查看 dossier 覆盖状态并做结构检查
-- \`llm-wiki-invest sources pending [--json]\`：列出未 ingest 或已变化的 sources，供 agent 生成计划
+- \`llm-wiki-invest sources pending [path] [--json]\`：按输入范围列出未 ingest 或已变化的 sources，\`path\` 可为 source 文件/目录或 dossier run 目录
 - \`llm-wiki-invest sources mark-ingested <paths...> --pages <pages>\`：agent 写完 wiki 后标记来源已编译
 
 ## 规则
 
 1. 在执行任何操作前，始终先读 \`wiki-purpose.md\` 和 \`wiki-schema.md\`
-2. 绝不要手工修改 \`sources/\` 中已有来源的正文；通用 \`/ingest\` 可新增来源副本，官方来源由 dossier CLI 写入，ingest 状态由 \`llm-wiki-invest sources mark-ingested\` 写入
+2. 绝不要手工修改 \`sources/\` 中已有来源的正文；\`sources/\` 是唯一长期事实层，外部文件必须先物化为 source，ingest 状态由 \`llm-wiki-invest sources mark-ingested\` 写入
 3. 页面之间的交叉引用统一使用 \`[[wikilinks]]\`
 4. 每次操作结束后，都要在 \`wiki-log.md\` 追加记录，并运行 \`llm-wiki-invest sync\`
 5. 当你收到信息时，要按自动 ingest 标准判断，不要等显式命令

@@ -30,6 +30,7 @@ export const initCommand = new Command('init')
     mkdirSync(paths.sources, { recursive: true });
     mkdirSync(paths.llmWikiDir, { recursive: true });
     mkdirSync(paths.ingestPlans, { recursive: true });
+    mkdirSync(paths.dossierRuns, { recursive: true });
 
     // Install skills first (before vault marker) so a failure here leaves
     // the dir in a re-runnable state instead of half-initialized.
@@ -71,6 +72,7 @@ export const initCommand = new Command('init')
     console.log('  wiki-agent.md    — Agent identity and ingest rules');
     console.log('  wiki-log.md      — Change log');
     console.log('  .llm-wiki-invest/ingest-plans/ — Agent-authored ingest plans');
+    console.log('  .llm-wiki-invest/dossier-runs/ — Dossier run records');
     console.log('  CLAUDE.md        — Agent bootstrap (Claude Code)');
     console.log('  AGENTS.md        — Agent bootstrap (Codex)');
     console.log('  .llm-wiki-invest/ — Config and state');

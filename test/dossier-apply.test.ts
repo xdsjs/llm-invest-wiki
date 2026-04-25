@@ -60,6 +60,59 @@ describe('applyManifest', () => {
     expect(readFileSync(out, 'utf-8')).toContain("author: '[[apple.com]]'");
   });
 
+  it('should write a dossier run record while promoting materials into sources', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('# Q1 Results', {
+      status: 200,
+      headers: { 'content-type': 'text/markdown; charset=utf-8' },
+    })) as typeof fetch);
+
+    const manifest = {
+      company: { companyName: 'Apple Inc.', ticker: 'AAPL', market: 'us' },
+      generatedAt: '2026-04-23T10:00:00Z',
+      materials: [{
+        companyName: 'Apple Inc.',
+        ticker: 'AAPL',
+        market: 'us',
+        authority: 'company' as const,
+        title: 'Apple Q1 Results Release',
+        source: 'https://investor.apple.com/q1-release.md',
+        canonicalUrl: 'https://investor.apple.com/q1-release.md',
+        author: '[[apple.com]]',
+        published: '2026-02-01',
+        documentType: 'earnings-release',
+        disclosureKey: '2026-02-01-q1-results',
+        sequence: 0,
+        suggestedFilename: 'primary-q1-release',
+        contentType: 'text/markdown',
+      }],
+    };
+    const result = await applyManifest(testDir, manifest, { runId: '2026-04-25-aapl' });
+    const runDir = join(testDir, '.llm-wiki-invest/dossier-runs/2026-04-25-aapl');
+
+    expect(result.runDir).toBe(runDir);
+    expect(existsSync(join(runDir, 'manifest.json'))).toBe(true);
+    expect(readFileSync(join(runDir, 'manifest.json'), 'utf-8')).toContain('Apple Q1 Results Release');
+
+    const report = readFileSync(join(runDir, 'report.md'), 'utf-8');
+    expect(report).toContain('Created: 1');
+    expect(report).toContain('Skipped duplicates: 0');
+    expect(report).toContain('Unresolved: 0');
+    expect(report).toContain('sources/earnings-release/2026/2026-02-01-q1-results/00-primary-q1-release.md');
+
+    const resultJson = JSON.parse(readFileSync(join(runDir, 'result.json'), 'utf-8')) as {
+      runId: string;
+      created: string[];
+      skippedDuplicates: string[];
+      unresolved: string[];
+    };
+    expect(resultJson.runId).toBe('2026-04-25-aapl');
+    expect(resultJson.created).toEqual([
+      'sources/earnings-release/2026/2026-02-01-q1-results/00-primary-q1-release.md',
+    ]);
+    expect(resultJson.skippedDuplicates).toEqual([]);
+    expect(resultJson.unresolved).toEqual([]);
+  });
+
   it('should skip duplicate materials with the same identity key and unchanged content', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response('# Same body', {
       status: 200,
@@ -131,6 +184,22 @@ describe('applyManifest', () => {
     expect(result.unresolved).toEqual([unresolved]);
     expect(existsSync(unresolved)).toBe(true);
     expect(readFileSync(unresolved, 'utf-8')).toContain('unsupported content-type');
+
+    const runUnresolved = join(
+      result.runDir,
+      'unresolved/2026-02-01-q1-results-investor-presentation-1.json'
+    );
+    expect(existsSync(runUnresolved)).toBe(true);
+    expect(readFileSync(runUnresolved, 'utf-8')).toContain('unsupported content-type');
+
+    const resultJson = JSON.parse(readFileSync(join(result.runDir, 'result.json'), 'utf-8')) as {
+      created: string[];
+      unresolved: string[];
+    };
+    expect(resultJson.created).toEqual([]);
+    expect(resultJson.unresolved).toEqual([
+      '.llm-wiki-invest/dossier-unresolved/2026-02-01-q1-results-investor-presentation-1.json',
+    ]);
   });
 
   it('should group same-type materials under one disclosure directory and split different types', async () => {

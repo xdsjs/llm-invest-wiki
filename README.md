@@ -57,21 +57,22 @@ my-wiki/
 ├── wiki-schema.md         # 页面类型、命名规则、引用和 frontmatter 规则
 ├── wiki-log.md            # 追加式操作日志
 ├── wiki/                  # 由 AI 维护的 wiki 页面（兼容 Obsidian）
-├── sources/               # 原始、不可变的来源材料和官方建档材料
-│   ├── YYYY-MM-DD/        # 通用 ingest / research 来源
-│   └── {document_type}/   # 官方建档材料，如 10-k/、earnings-release/
+├── sources/               # 唯一长期事实层，wiki 只引用这里的来源
+│   ├── {document_type}/   # 官方建档材料，如 10-k/、earnings-release/
+│   └── research/          # 非官方研究来源或其他明确 source category
 ├── .claude/
 │   └── skills/
-│       ├── llm-wiki-invest.md    # Claude Code 使用的主 skill
+│       ├── invest-wiki-flow/     # Claude Code 使用的每日维护 workflow skill
 │       └── invest-wiki-ingest/   # /ingest 专门 skill 与模板
 ├── .agents/
 │   └── skills/
-│       ├── llm-wiki-invest.md    # Codex 使用的主 skill
+│       ├── invest-wiki-flow/     # Codex 使用的每日维护 workflow skill
 │       └── invest-wiki-ingest/   # /ingest 专门 skill 与模板
 └── .llm-wiki-invest/
     ├── config.toml        # Vault 配置
     ├── sync-state.json    # 增量同步状态
     ├── ingest-plans/      # agent 生成的 ingest 计划与执行记录
+    ├── dossier-runs/      # dossier apply 的 manifest、report 与本次 unresolved
     ├── dossier-state.json # dossier 身份与材料状态
     └── dossier-unresolved/ # 无法稳定处理的 dossier 材料
 ```
@@ -89,14 +90,14 @@ LLM Wiki Invest 使用两层文件结构，让任意 AI agent 在无需手工配
 - 当前工作区是一个 LLM Wiki Invest vault
 - 去哪里读取 `wiki-purpose.md` 和 `wiki-schema.md`
 - 可以使用哪些 `/ingest`、`/query`、`/lint`、`/research` 命令
-- 主 skill 与专门 skill 位于哪里（例如 `llm-wiki-invest.md` 与 `invest-wiki-ingest/SKILL.md`）
+- 主 workflow skill 与专门 skill 位于哪里（例如 `invest-wiki-flow/SKILL.md` 与 `invest-wiki-ingest/SKILL.md`）
 - 基础 CLI 速查和核心操作规则
 
 因为它们会自动加载，所以这些入口文件刻意保持简短，通常只有几十行，用来降低会话启动时的上下文成本。
 
 **2. Skill 文件：`.claude/skills/` 和 `.agents/skills/`**
 
-这是完整的 agent 操作手册，只有在 agent 真正调用 wiki 命令时才会按需加载。`llm-wiki-invest.md` 是通用入口，`invest-wiki-ingest/SKILL.md` 承载完整 `/ingest` 流程，其他投资领域专门流程也以 bundle skill 形式安装。同一组 skill 会安装到两个平台目录下，因此同一个 vault 可以同时被 Claude Code 和 Codex 使用，而无需额外适配。
+这是完整的 agent 操作手册，只有在 agent 真正调用 wiki 命令时才会按需加载。`invest-wiki-flow/SKILL.md` 是每日 dossier → ingest 维护 workflow，`invest-wiki-ingest/SKILL.md` 承载完整 `/ingest` 流程，其他投资领域专门流程也以 bundle skill 形式安装。同一组 skill 会安装到两个平台目录下，因此同一个 vault 可以同时被 Claude Code 和 Codex 使用，而无需额外适配。
 
 **升级。** `llm-wiki-invest init` 仍然是唯一的初始化命令，它会写入入口文件并安装 skill。升级 npm 包之后，运行 `llm-wiki-invest skill install` 即可刷新 skill 文件。你自己对 `CLAUDE.md` / `AGENTS.md` 的修改在重新安装后仍会保留。
 
@@ -120,10 +121,10 @@ Skill 暴露四个操作，它们都以斜杠命令的形式被调用：
 | `llm-wiki-invest init [dir]` | 初始化一个新的 wiki vault |
 | `llm-wiki-invest dossier fetch-sec-submissions --cik ... [--recent] [--forms ...]` | 抓取 SEC submissions JSON，或输出最近 filings 摘要 |
 | `llm-wiki-invest dossier init ...` | 初始化当前 vault 的 dossier 身份上下文 |
-| `llm-wiki-invest dossier apply <manifest>` | 把 reviewed dossier manifest 物化到 `sources/` |
+| `llm-wiki-invest dossier apply <manifest> [--run-id <id>]` | 建立 dossier run 记录，并把 reviewed manifest 物化到 `sources/` |
 | `llm-wiki-invest dossier status` | 展示 dossier 材料数、披露数、authority/type 统计与 unresolved 数 |
 | `llm-wiki-invest dossier check` | 检查官方 sources 目录结构与 frontmatter 是否合规 |
-| `llm-wiki-invest sources pending [--json]` | 按 `sources/` 目录分组列出未 ingest 或已变化的来源，供 agent 生成计划 |
+| `llm-wiki-invest sources pending [path] [--json]` | 按输入范围列出未 ingest 或已变化的来源；`path` 可为 `sources/` 文件/目录或 `.llm-wiki-invest/dossier-runs/<run-id>/` |
 | `llm-wiki-invest sources mark-ingested <paths...> --pages <pages>` | agent 写完 wiki 后，给来源写入 `ingested`、`ingest_hash`、`wiki_pages` |
 | `llm-wiki-invest search <query>` | BM25 关键词搜索（如果配置了 DB9，也会结合向量搜索） |
 | `llm-wiki-invest graph [--json]` | 分析 wikilink 图：社区、枢纽页、孤儿页、待写页 |
@@ -188,7 +189,7 @@ url = "your-db9-connection-string"
 其中：
 
 - `wiki/` 用于 agent 和人持续维护的知识页
-- `sources/` 用于只读来源材料；其中官方建档材料由 `llm-wiki-invest dossier apply` 写入，不应手工改写正文
+- `sources/` 用于只读来源材料，是 wiki 唯一可引用的事实层；其中官方建档材料由 `llm-wiki-invest dossier apply` 写入，不应手工改写正文
 
 ## 配置
 

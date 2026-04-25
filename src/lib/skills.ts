@@ -73,6 +73,10 @@ export interface InstallResult {
   skipped: string[];
 }
 
+const RENAMED_SKILL_DESTINATIONS: Record<string, string[]> = {
+  'invest-wiki-flow': ['llm-wiki-invest', 'llm-wiki-invest.md'],
+};
+
 export function installSkillsTo(targetDir: string, overwrite = true): InstallResult {
   const skillsDir = getSkillsDir();
   if (!existsSync(skillsDir)) {
@@ -87,10 +91,26 @@ export function installSkillsTo(targetDir: string, overwrite = true): InstallRes
     const dest = entry.type === 'file'
       ? join(targetDir, `${entry.name}.md`)
       : join(targetDir, entry.name);
+    const alternateDest = entry.type === 'file'
+      ? join(targetDir, entry.name)
+      : join(targetDir, `${entry.name}.md`);
 
-    if (!overwrite && existsSync(dest)) {
+    if (!overwrite && (existsSync(dest) || existsSync(alternateDest))) {
       skipped.push(entry.name);
       continue;
+    }
+
+    if (overwrite) {
+      for (const legacyName of RENAMED_SKILL_DESTINATIONS[entry.name] ?? []) {
+        const legacyDest = join(targetDir, legacyName);
+        if (legacyDest !== dest && existsSync(legacyDest)) {
+          rmSync(legacyDest, { recursive: true, force: true });
+        }
+      }
+    }
+
+    if (overwrite && existsSync(alternateDest)) {
+      rmSync(alternateDest, { recursive: true, force: true });
     }
 
     if (entry.type === 'file') {

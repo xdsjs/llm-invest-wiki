@@ -29,6 +29,7 @@ describe('config path resolution', () => {
     expect(paths.syncState).toBe(join(testDir, '.llm-wiki-invest/sync-state.json'));
     expect(paths.dossierState).toBe(join(testDir, '.llm-wiki-invest/dossier-state.json'));
     expect(paths.dossierUnresolved).toBe(join(testDir, '.llm-wiki-invest/dossier-unresolved'));
+    expect(paths.dossierRuns).toBe(join(testDir, '.llm-wiki-invest/dossier-runs'));
     expect(paths.ingestPlans).toBe(join(testDir, '.llm-wiki-invest/ingest-plans'));
   });
 

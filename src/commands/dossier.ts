@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
-import { dirname } from 'node:path';
+import { dirname, relative, sep } from 'node:path';
 import { requireVaultRoot, vaultPaths } from '../lib/config.js';
 import { loadDossierManifest } from '../lib/dossier.js';
 import type { DossierState } from '../lib/dossier.js';
@@ -93,14 +93,16 @@ dossierCommand
   .command('apply')
   .description('Materialize a reviewed dossier manifest into the current vault')
   .argument('<manifest>', 'path to reviewed dossier manifest json')
-  .action(async (manifestPath: string) => {
+  .option('--run-id <id>', 'stable dossier run id for audit records')
+  .action(async (manifestPath: string, opts: { runId?: string }) => {
     const root = requireVaultRoot();
     const manifest = loadDossierManifest(manifestPath);
-    const result = await applyManifest(root, manifest);
+    const result = await applyManifest(root, manifest, { runId: opts.runId });
 
     console.log(`Created: ${result.created.length}`);
     console.log(`Skipped duplicates: ${result.skippedDuplicates.length}`);
     console.log(`Unresolved: ${result.unresolved.length}`);
+    console.log(`Run: ${relative(root, result.runDir).split(sep).join('/')}`);
   });
 
 dossierCommand

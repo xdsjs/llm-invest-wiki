@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
-import { dirname, isAbsolute, relative, resolve } from 'node:path';
+import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import matter from 'gray-matter';
 import { vaultPaths } from './config.js';
 import { listMarkdownFiles } from './wiki.js';
@@ -27,6 +27,10 @@ export interface SourceIngestEntry {
 export interface SourceIngestGroup {
   path: string;
   sources: SourceIngestEntry[];
+}
+
+interface DossierRunResult {
+  created?: unknown;
 }
 
 function stableValue(value: unknown): unknown {
@@ -134,10 +138,10 @@ export function listSourceIngestEntries(root: string): SourceIngestEntry[] {
     .sort((a, b) => a.path.localeCompare(b.path));
 }
 
-export function listPendingSourceGroups(root: string, includeClean = false): SourceIngestGroup[] {
+function groupSourceEntries(entries: SourceIngestEntry[], includeClean = false): SourceIngestGroup[] {
   const groups = new Map<string, SourceIngestEntry[]>();
 
-  for (const entry of listSourceIngestEntries(root)) {
+  for (const entry of entries) {
     if (!includeClean && entry.status === 'clean') {
       continue;
     }
@@ -149,6 +153,71 @@ export function listPendingSourceGroups(root: string, includeClean = false): Sou
   return [...groups.entries()]
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([path, sources]) => ({ path, sources }));
+}
+
+export function listPendingSourceGroups(root: string, includeClean = false): SourceIngestGroup[] {
+  return groupSourceEntries(listSourceIngestEntries(root), includeClean);
+}
+
+function isInside(parent: string, child: string): boolean {
+  const rel = relative(parent, child);
+  return rel === '' || (!rel.startsWith('..') && !isAbsolute(rel));
+}
+
+function resolveDossierRunCreatedSourceFiles(root: string, inputPath: string): string[] {
+  const paths = vaultPaths(root);
+  const resolved = resolve(root, inputPath);
+  const resultPath = resolved.endsWith('result.json') ? resolved : join(resolved, 'result.json');
+  const relToRuns = relative(paths.dossierRuns, resultPath);
+  if (relToRuns.startsWith('..') || isAbsolute(relToRuns)) {
+    return [];
+  }
+  if (!existsSync(resultPath)) {
+    throw new Error(`dossier run result does not exist: ${inputPath}`);
+  }
+
+  const result = JSON.parse(readFileSync(resultPath, 'utf-8')) as DossierRunResult;
+  if (!Array.isArray(result.created)) {
+    return [];
+  }
+
+  return result.created
+    .filter((path): path is string => typeof path === 'string')
+    .map(path => resolveSourcePath(root, path));
+}
+
+function listSourceFilesForPath(root: string, inputPath: string): string[] {
+  const paths = vaultPaths(root);
+  const resolved = resolve(root, inputPath);
+
+  if (isInside(paths.dossierRuns, resolved)) {
+    return resolveDossierRunCreatedSourceFiles(root, inputPath);
+  }
+
+  if (!isInside(paths.sources, resolved)) {
+    throw new Error(`pending path must be inside sources/ or .llm-wiki-invest/dossier-runs/: ${inputPath}`);
+  }
+  if (!existsSync(resolved)) {
+    throw new Error(`pending path does not exist: ${inputPath}`);
+  }
+  if (statSync(resolved).isFile()) {
+    if (!resolved.endsWith('.md')) {
+      return [];
+    }
+    return [resolved];
+  }
+  return listMarkdownFiles(resolved).sort((a, b) => a.localeCompare(b));
+}
+
+export function listPendingSourceGroupsForPath(
+  root: string,
+  inputPath: string,
+  includeClean = false
+): SourceIngestGroup[] {
+  const entries = listSourceFilesForPath(root, inputPath)
+    .map(filePath => inspectSourceFile(root, filePath))
+    .sort((a, b) => a.path.localeCompare(b.path));
+  return groupSourceEntries(entries, includeClean);
 }
 
 export function resolveSourcePath(root: string, inputPath: string): string {
