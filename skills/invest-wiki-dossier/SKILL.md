@@ -9,10 +9,7 @@ description: Use when maintaining official file-level sources for one listed com
 
 ## 不变量
 
-- `sources/` 是长期事实层；只写官方或监管/交易所控制的文件级材料。
-- 默认执行增量维护；只有首次建档、补历史缺口或用户明确要求 backfill 时才扩大范围。
-- 不直接手工改写已落盘 source 正文；材料下载、转换、去重、状态更新交给 `llm-wiki-invest dossier` CLI。
-- 不把推断写入 source frontmatter 或正文；无法确认就进入 unresolved。
+- 本 skill 只维护 `sources/` 事实层；不写 `wiki/`，不执行 ingest。
 
 ## 可执行的 CLI 工具
 
@@ -22,35 +19,55 @@ description: Use when maintaining official file-level sources for one listed com
 - `dossier apply` 下载、markitdown 转换、落盘、去重、写 run record。
 - `dossier status` / `dossier check` 做结果检查。
 
-## 市场模板
+## Workflow
 
-根据输入信息，先确定市场，再读取对应模板。
+### step1: 读取上下文
 
-- 美国上市公司：读取 `template/us.md`。
-- 没有对应模板的市场：停止，说明当前 skill 不支持该市场，不要临时发明规则。
+1. 确认当前目录是目标 vault 根目录。
+2. 读取 `.llm-wiki-invest/dossier-state.json`，按“状态读取”规则判断**首次建档** 或 **增量维护**。
+   - 不存在：按首次建档处理，先确认公司身份，再运行 `llm-wiki-invest dossier init --market ... --ticker ... --company-name ... [--cik ...] [--exchange ...]`。
+   - 已存在：以 state 中的 `ticker`、`companyName`、`cik`、`exchange` 为准；如果用户输入冲突，先停止说明冲突。
+   - 旧 state 有 `materials` 但缺少 `checkpoints`，或任一 material 缺少 `authority`、`documentType`、`published`：先运行 `llm-wiki-invest dossier refresh-state`。
+   - `materials` 是已建档材料身份表；用于判断具体材料是否已追踪。
+   - `checkpoints` 只用于缩小 discovery 窗口；不能单独作为跳过材料的依据。
 
-模板负责市场细则；本文件负责通用执行顺序。
+### step2: 确认公司身份、选择 discovery 窗口
 
-## 状态读取
+1. 从官方来源确认 `ticker`、`companyName`、`cik`(如果适用)、`exchange` 以及 公司所在**市场**（us/hk/cn）。
+2. 读取市场对应的**建档模板**；例如美国市场 `template/us.md`。
+   - 没有对应模板的市场：停止，输出：“当前不支持该市场”，停止`Workflow`。
+3. **首次建档**：运行 `dossier init`，按**建档模板**建立基础覆盖。
+4. **增量维护**：以 state 身份为准，按**建档模板**决定 discovery 窗口；`checkpoints` 只决定检查起点，不能单独作为跳过材料的依据。
+   - 只在用户输入与 state 不一致时，输出：“用户输入与 state 不一致”，停止`Workflow`。
 
-每次开始先读取 `.llm-wiki-invest/dossier-state.json`。
+### step3: 发现、审定候选材料，并生成reviewed manifest
 
-- 不存在：按首次建档处理，先确认公司身份，再运行 `llm-wiki-invest dossier init --market ... --ticker ... --company-name ... [--cik ...] [--exchange ...]`。
-- 已存在：以 state 中的 `ticker`、`companyName`、`cik`、`exchange` 为准；如果用户输入冲突，先停止说明冲突。
-- 旧 state 有 `materials` 但缺少材料元数据或 `checkpoints`：先运行 `llm-wiki-invest dossier refresh-state`。
-- `materials` 是已建档材料身份表；用于判断具体材料是否已追踪。
-- `checkpoints` 只用于缩小 discovery 窗口；不能单独作为跳过材料的依据。
+1. 只从**模板**允许的 official discovery surface 找链接。
+2. 对每个候选材料记录 URL、标题、发布日期、来源面、文件类型线索和官方上下文。
+3. 按 “候选材料准入” 逐项判断。
+4. 按模板确定 `authority`、`documentType`、`disclosureKey`、`sequence`、`suggestedFilename`。
+5. 先用材料身份和 state `materials` 排除已存在材料。
+6. 对无法确认的材料，不要放进 manifest。
+7. 先确定稳定 `<run-id>`，再生成 reviewed manifest：只包含需要新增或明确变化的材料。如果候选列表为空，输出 no-op 并停止`Workflow`。manifest 必须是可被 `llm-wiki-invest dossier apply` 直接消费的 JSON。
+8. reviewed manifest 临时保存到 `.llm-wiki-invest/dossier-manifests/<run-id>.json`；不要放进 `sources/` 或 `wiki/`。
 
-## 增量策略
+### step4: 物化 sources 并校验
 
-增量维护只检查最近可能新增或变化的官方材料。
+1. 调用 `dossier apply`，优先使用稳定 run id：
+  ```bash
+  llm-wiki-invest dossier apply .llm-wiki-invest/dossier-manifests/<run-id>.json --run-id <run-id>
+  ```
+2. 运行：
+  ```bash
+  llm-wiki-invest dossier status
+  llm-wiki-invest dossier check
+  ```
 
-- SEC 材料身份：`accession_no + primary_document`。
-- 非 SEC 材料身份：`canonical_url + published`。
-- 已存在且内容未变的材料不要主动加入 manifest；即使误加入，CLI 也会按 state 去重。
-- 同一 canonical URL 疑似变化但无法确认新的 `published`：进入 unresolved，不覆盖旧 source。
-- 连续命中已存在历史材料时，可以停止向更早历史翻页。
-- 没有新增或明确变化候选时，输出 no-op，不生成空 manifest，不调用 `dossier apply`。
+### step5: 交付结果
+
+1. 读取 `.llm-wiki-invest/dossier-runs/<run-id>/result.json`。
+2. 明确返回 `result_json_path: .llm-wiki-invest/dossier-runs/<run-id>/result.json`，供上层 flow 消费。
+3. 报告 created / skipped / unresolved。
 
 ## 候选材料准入
 
@@ -91,23 +108,13 @@ SEC material 还必须包含：
 
 `sequence` 在目标目录 `sources/{documentType}/{year}/{disclosureKey}/` 内必须唯一。同一次披露下同一种文件类型有多个文件时，共用同一个 `disclosureKey`，用不同 `sequence` 区分。
 
-## Apply 与检查
-
-有 manifest 时执行：
-
-```bash
-llm-wiki-invest dossier apply <manifest.json> --run-id <YYYY-MM-DD-ticker-purpose>
-llm-wiki-invest dossier status
-llm-wiki-invest dossier check
-```
-
-然后读取 `.llm-wiki-invest/dossier-runs/<run-id>/result.json`：
+## Run Result
 
 - `created` 是本次新增 source，供上层 flow 或 ingest 使用。
 - `skippedDuplicates` 是已存在且内容未变的材料。
 - `unresolved` 需要人工或后续规则处理。
 
-同时查看同目录 `report.md`。如果有 unresolved，再查看 run 内 `unresolved/` 和全局 `.llm-wiki-invest/dossier-unresolved/`。
+`result.json` 是唯一 run result。如果有 unresolved，再查看 run 内 `unresolved/` 和全局 `.llm-wiki-invest/dossier-unresolved/`。
 
 ## 输出格式
 
@@ -120,6 +127,7 @@ no-op 时只报告：
 apply 后只报告：
 
 - run id 和 run 目录。
+- result_json_path。
 - created / skipped / unresolved 数量。
 - created source 路径。
 - unresolved 的具体原因。

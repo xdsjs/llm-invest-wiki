@@ -107,49 +107,6 @@ function toVaultRelative(root: string, path: string): string {
   return relative(root, path).split(sep).join('/');
 }
 
-function renderRunReport(root: string, manifest: DossierManifest, result: ApplyResult): string {
-  const lines = [
-    `# Dossier Run: ${result.runId}`,
-    '',
-    `Company: ${manifest.company.ticker} — ${manifest.company.companyName}`,
-    `Generated: ${manifest.generatedAt}`,
-    `Run Dir: ${toVaultRelative(root, result.runDir)}`,
-    '',
-    '## Summary',
-    '',
-    `Created: ${result.created.length}`,
-    `Skipped duplicates: ${result.skippedDuplicates.length}`,
-    `Unresolved: ${result.unresolved.length}`,
-    '',
-  ];
-
-  if (result.created.length > 0) {
-    lines.push('## Created Sources', '');
-    for (const path of result.created) {
-      lines.push(`- ${toVaultRelative(root, path)}`);
-    }
-    lines.push('');
-  }
-
-  if (result.skippedDuplicates.length > 0) {
-    lines.push('## Skipped Duplicates', '');
-    for (const key of result.skippedDuplicates) {
-      lines.push(`- ${key}`);
-    }
-    lines.push('');
-  }
-
-  if (result.unresolved.length > 0) {
-    lines.push('## Unresolved', '');
-    for (const path of result.unresolved) {
-      lines.push(`- ${toVaultRelative(root, path)}`);
-    }
-    lines.push('');
-  }
-
-  return `${lines.join('\n').trim()}\n`;
-}
-
 function renderRunResult(root: string, manifest: DossierManifest, result: ApplyResult): string {
   return JSON.stringify({
     runId: result.runId,
@@ -262,6 +219,5 @@ export async function applyManifest(
   state.updatedAt = now;
   saveDossierState(paths.dossierState, state);
   writeFileSync(join(runDir, 'result.json'), `${renderRunResult(root, manifest, result)}\n`);
-  writeFileSync(join(runDir, 'report.md'), renderRunReport(root, manifest, result));
   return result;
 }

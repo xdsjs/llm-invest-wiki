@@ -128,12 +128,7 @@ describe('applyManifest', () => {
     expect(result.runDir).toBe(runDir);
     expect(existsSync(join(runDir, 'manifest.json'))).toBe(true);
     expect(readFileSync(join(runDir, 'manifest.json'), 'utf-8')).toContain('Apple Q1 Results Release');
-
-    const report = readFileSync(join(runDir, 'report.md'), 'utf-8');
-    expect(report).toContain('Created: 1');
-    expect(report).toContain('Skipped duplicates: 0');
-    expect(report).toContain('Unresolved: 0');
-    expect(report).toContain('sources/earnings-release/2026/2026-02-01-q1-results/00-primary-q1-release.md');
+    expect(existsSync(join(runDir, 'report.md'))).toBe(false);
 
     const resultJson = JSON.parse(readFileSync(join(runDir, 'result.json'), 'utf-8')) as {
       runId: string;

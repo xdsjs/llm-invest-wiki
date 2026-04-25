@@ -95,7 +95,8 @@ describe('dossier command', () => {
     expect(output).toContain('Run: .llm-wiki-invest/dossier-runs/2026-04-25-aapl');
     expect(existsSync(outPath)).toBe(true);
     expect(readFileSync(outPath, 'utf-8')).toContain("title: 'Apple Q1 Results Release'");
-    expect(existsSync(join(testDir, '.llm-wiki-invest/dossier-runs/2026-04-25-aapl/report.md'))).toBe(true);
+    expect(existsSync(join(testDir, '.llm-wiki-invest/dossier-runs/2026-04-25-aapl/result.json'))).toBe(true);
+    expect(existsSync(join(testDir, '.llm-wiki-invest/dossier-runs/2026-04-25-aapl/report.md'))).toBe(false);
   });
 
   it('should refresh legacy dossier state metadata from tracked source files', () => {

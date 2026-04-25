@@ -38,15 +38,6 @@ llm-wiki-invest dossier fetch-sec-submissions --cik 0000320193 --recent --forms 
 
 ## 增量建档策略
 
-默认按增量维护执行，不做每日全量重建。
-
-先读取 `.llm-wiki-invest/dossier-state.json`：
-
-- `materials` 是已物化材料清单，用于判断具体材料是否已经建档。
-- `checkpoints.sec`、`checkpoints.company`、`checkpoints.governance`、`checkpoints.exchange` 是各来源面的最新已建档日期快照，用于缩小本次 discovery 窗口。
-- 如果已有 `materials` 但没有 checkpoint，先运行 `llm-wiki-invest dossier refresh-state`，从已追踪 source 的 frontmatter 回填增量快照。
-- checkpoint 不是高保真来源，不单独作为跳过依据；真正去重仍以材料身份和内容哈希为准。
-
 ### SEC 增量
 
 - 使用 `fetch-sec-submissions --recent` 获取最近 filings 摘要。
@@ -54,7 +45,6 @@ llm-wiki-invest dossier fetch-sec-submissions --cik 0000320193 --recent --forms 
 - 只评估最近出现的 `10-K`、`10-Q`、`8-K`、`DEF 14A` 等目标表单。
 - 用 `accession_no + primary_document` 判断材料身份。
 - 已经存在于 dossier state 的 filing 不进入 reviewed manifest，除非 primary document 明确不同。
-- 不为了每日维护重新抓取完整历史 submissions；历史缺口只在用户要求 backfill 时处理。
 
 ### 公司官网 / IR 增量
 
@@ -71,10 +61,6 @@ llm-wiki-invest dossier fetch-sec-submissions --cik 0000320193 --recent --forms 
 - governance 文件通常低频变化，只检查 canonical 文件列表和发布日期。
 - 如果文件 URL、标题、发布日期均未变，跳过。
 - 如果公司替换了同一政策文件但没有稳定发布日期，进入 unresolved，并说明需要人工确认版本边界。
-
-### No-op
-
-如果本次没有新增候选材料，返回 no-op 摘要，不生成空 manifest，不调用 `dossier apply`。
 
 ## 来源边界
 
@@ -157,21 +143,6 @@ llm-wiki-invest dossier fetch-sec-submissions --cik 0000320193 --recent --forms 
 
 ## 归档规则
 
-目录固定为：
-
-`sources/{document_type}/{year}/{disclosure_key}/`
-
-文件名固定为：
-
-`{sequence}-{suggestedFilename}.md`
-
-规则：
-
-- `sequence` 使用两位数字，从 `00` 开始
-- 同一次披露下，同一种 `document_type` 的文件共享同一个 `disclosure_key`
-- `sequence` 在同一个 `{document_type}/{disclosure_key}` 目录内必须唯一
-- 季度或年度财务报表附件不要误归为 `10-q` / `10-k`
-
 当两个官方来源发布了实质等价的同一份材料时：
 
 - 可以同时保留，不要强行二选一
@@ -180,44 +151,17 @@ llm-wiki-invest dossier fetch-sec-submissions --cik 0000320193 --recent --forms 
 - 若语义相同，使用同一个 `document_type`
 - `sequence` 必须不同，通常把更接近 canonical 页面者排在更前
 
-## frontmatter 最小字段
-
-每个官方来源文件必须包含：
-
-```yaml
----
-title:
-source:
-author:
-published:
-created:
-authority:
-document_type:
-disclosure_key:
----
-```
-
-要求：
-
-- `author` 使用 Obsidian 风格值，例如 `[[sec.gov]]`
-- `source` 保留原始材料 URL
-- `published` 是官方发布日期
-- `created` 是本地物化日期
-
 ## 去重规则
 
 - SEC 材料身份：`accession_no` + `primary_document`
-- 非 SEC 文件级材料身份：`canonical_url` + `published`
 
-同一个 `document_type` 不代表同一份材料；重复抓到同一材料时应跳过，不重复落盘。
+同一个 SEC accession 下可能有多个 primary document；不要只按 accession number 去重。
 
 ## unresolved 条件
 
-以下情况进入 unresolved：
+以下美国市场常见情况应作为 unresolved candidate 报告，除非 `dossier apply` 已经生成 CLI unresolved 文件：
 
-- 文件格式无法稳定转换
-- 无法确认是否为官方材料
-- 无法确定 `document_type`
-- 无法确定 `published`
-- 无法确定 `disclosure_key`
-- 物化后正文主体仍主要是导航、脚本、XBRL 噪音或不可读元数据
+- 无法确认 SEC primary document。
+- SEC HTML 物化后主体主要是 XBRL 噪音或不可读元数据。
+- 公司替换 governance PDF 但没有稳定版本日期。
+- 公司 IR 页面只有摘要或下载壳，无法确认正式文件 URL。
