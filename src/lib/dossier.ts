@@ -38,6 +38,35 @@ export interface DossierManifest {
   materials: DossierMaterialInput[];
 }
 
+export type DossierCheckpointSurface = 'sec' | 'company' | 'governance' | 'exchange';
+
+export interface DossierMaterialState {
+  outputPath: string;
+  contentHash: string;
+  title?: string;
+  authority?: DossierAuthority;
+  documentType?: string;
+  disclosureKey?: string;
+  published?: string;
+  source?: string;
+  canonicalUrl?: string;
+  accessionNo?: string;
+  primaryDocument?: string;
+  sourceChannel?: string;
+  firstSeenAt?: string;
+  lastSeenAt?: string;
+}
+
+export interface DossierCheckpointState {
+  updatedAt?: string;
+  latestPublished?: string;
+  latestPublishedByDocumentType?: Record<string, string>;
+  latestIdentityByDocumentType?: Record<string, string>;
+  latestSecFilingDate?: string;
+  latestSecFilingDateByDocumentType?: Record<string, string>;
+  latestSecAccessionNoByDocumentType?: Record<string, string>;
+}
+
 export interface DossierState {
   market: string;
   ticker: string;
@@ -46,7 +75,9 @@ export interface DossierState {
   exchange: string | null;
   template: string;
   initializedAt: string;
-  materials: Record<string, { outputPath: string; contentHash: string }>;
+  updatedAt?: string;
+  materials: Record<string, DossierMaterialState>;
+  checkpoints?: Partial<Record<DossierCheckpointSurface, DossierCheckpointState>>;
 }
 
 function yamlQuote(value: string): string {

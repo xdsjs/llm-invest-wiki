@@ -58,6 +58,42 @@ describe('applyManifest', () => {
     expect(result.created).toEqual([out]);
     expect(existsSync(out)).toBe(true);
     expect(readFileSync(out, 'utf-8')).toContain("author: '[[apple.com]]'");
+
+    const state = JSON.parse(readFileSync(join(testDir, '.llm-wiki-invest/dossier-state.json'), 'utf-8')) as {
+      materials: Record<string, {
+        outputPath: string;
+        contentHash: string;
+        authority: string;
+        documentType: string;
+        disclosureKey: string;
+        published: string;
+        canonicalUrl: string;
+        firstSeenAt: string;
+        lastSeenAt: string;
+      }>;
+      checkpoints: {
+        company?: {
+          latestPublished: string;
+          latestPublishedByDocumentType: Record<string, string>;
+          latestIdentityByDocumentType: Record<string, string>;
+        };
+      };
+    };
+    const identityKey = 'company:https://investor.apple.com/q1-release.md:2026-02-01';
+    expect(state.materials[identityKey]).toMatchObject({
+      outputPath: out,
+      authority: 'company',
+      documentType: 'earnings-release',
+      disclosureKey: '2026-02-01-q1-results',
+      published: '2026-02-01',
+      canonicalUrl: 'https://investor.apple.com/q1-release.md',
+    });
+    expect(state.materials[identityKey].contentHash).toMatch(/^[a-f0-9]{16}$/);
+    expect(state.materials[identityKey].firstSeenAt).toBeTruthy();
+    expect(state.materials[identityKey].lastSeenAt).toBeTruthy();
+    expect(state.checkpoints.company?.latestPublished).toBe('2026-02-01');
+    expect(state.checkpoints.company?.latestPublishedByDocumentType['earnings-release']).toBe('2026-02-01');
+    expect(state.checkpoints.company?.latestIdentityByDocumentType['earnings-release']).toBe(identityKey);
   });
 
   it('should write a dossier run record while promoting materials into sources', async () => {
@@ -274,6 +310,21 @@ describe('applyManifest', () => {
     expect(result.created).toContain(
       join(testDir, 'sources/earnings-release/2026/2026-02-01-q1-results/01-q1-statements.md')
     );
+
+    const state = JSON.parse(readFileSync(join(testDir, '.llm-wiki-invest/dossier-state.json'), 'utf-8')) as {
+      checkpoints: {
+        sec?: {
+          latestPublished: string;
+          latestSecFilingDate: string;
+          latestSecFilingDateByDocumentType: Record<string, string>;
+          latestSecAccessionNoByDocumentType: Record<string, string>;
+        };
+      };
+    };
+    expect(state.checkpoints.sec?.latestPublished).toBe('2026-02-01');
+    expect(state.checkpoints.sec?.latestSecFilingDate).toBe('2026-02-01');
+    expect(state.checkpoints.sec?.latestSecFilingDateByDocumentType['8-k']).toBe('2026-02-01');
+    expect(state.checkpoints.sec?.latestSecAccessionNoByDocumentType['8-k']).toBe('0000320193-26-000005');
   });
 
   it('should write unresolved records when sequence is reused within the same disclosure directory', async () => {

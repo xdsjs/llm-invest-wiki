@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, sep } from 'node:path';
 import {
   buildDisclosureDir,
@@ -7,14 +7,15 @@ import {
   makeIdentityKey,
   renderDossierMarkdown,
 } from './dossier.js';
-import type {
-  DossierManifest,
-  DossierManifestCompany,
-  DossierMaterialInput,
-  DossierState,
-} from './dossier.js';
+import type { DossierManifest, DossierMaterialInput } from './dossier.js';
 import { vaultPaths } from './config.js';
 import { materializeSource } from './dossier-materialize.js';
+import {
+  loadDossierState,
+  mergeDossierMaterialState,
+  saveDossierState,
+  updateDossierCheckpoints,
+} from './dossier-state.js';
 
 export interface ApplyResult {
   created: string[];
@@ -26,41 +27,6 @@ export interface ApplyResult {
 
 export interface ApplyOptions {
   runId?: string;
-}
-
-function createInitialState(company: DossierManifestCompany): DossierState {
-  return {
-    market: company.market,
-    ticker: company.ticker,
-    companyName: company.companyName,
-    cik: company.cik ?? null,
-    exchange: company.exchange ?? null,
-    template: company.market,
-    initializedAt: new Date().toISOString(),
-    materials: {},
-  };
-}
-
-function loadDossierState(statePath: string, company: DossierManifestCompany): DossierState {
-  if (!existsSync(statePath)) {
-    return createInitialState(company);
-  }
-
-  const state = JSON.parse(readFileSync(statePath, 'utf-8')) as Partial<DossierState>;
-  return {
-    market: state.market ?? company.market,
-    ticker: state.ticker ?? company.ticker,
-    companyName: state.companyName ?? company.companyName,
-    cik: state.cik ?? company.cik ?? null,
-    exchange: state.exchange ?? company.exchange ?? null,
-    template: state.template ?? company.market,
-    initializedAt: state.initializedAt ?? new Date().toISOString(),
-    materials: state.materials ?? {},
-  };
-}
-
-function saveDossierState(statePath: string, state: DossierState): void {
-  writeFileSync(statePath, JSON.stringify(state, null, 2));
 }
 
 function hashBody(body: string): string {
@@ -212,6 +178,7 @@ export async function applyManifest(
   writeFileSync(join(runDir, 'manifest.json'), JSON.stringify(manifest, null, 2));
 
   const state = loadDossierState(paths.dossierState, manifest.company);
+  const now = new Date().toISOString();
   const result: ApplyResult = { created: [], skippedDuplicates: [], unresolved: [], runDir, runId };
   const reservedSequences = new Set<string>();
 
@@ -230,6 +197,14 @@ export async function applyManifest(
       const existing = state.materials[identityKey];
 
       if (existing && existing.contentHash === contentHash) {
+        state.materials[identityKey] = mergeDossierMaterialState(
+          existing,
+          material,
+          existing.outputPath,
+          contentHash,
+          now
+        );
+        updateDossierCheckpoints(state, material, identityKey, now);
         result.skippedDuplicates.push(identityKey);
         continue;
       }
@@ -252,7 +227,7 @@ export async function applyManifest(
         source: material.source,
         author: material.author,
         published: material.published,
-        created: new Date().toISOString().slice(0, 10),
+        created: now.slice(0, 10),
         authority: material.authority,
         documentType: material.documentType,
         disclosureKey: material.disclosureKey,
@@ -263,7 +238,8 @@ export async function applyManifest(
       });
 
       writeFileSync(outPath, markdown);
-      state.materials[identityKey] = { outputPath: outPath, contentHash };
+      state.materials[identityKey] = mergeDossierMaterialState(existing, material, outPath, contentHash, now);
+      updateDossierCheckpoints(state, material, identityKey, now);
       result.created.push(outPath);
     } catch (error) {
       const unresolvedPath = join(
@@ -283,6 +259,7 @@ export async function applyManifest(
     }
   }
 
+  state.updatedAt = now;
   saveDossierState(paths.dossierState, state);
   writeFileSync(join(runDir, 'result.json'), `${renderRunResult(root, manifest, result)}\n`);
   writeFileSync(join(runDir, 'report.md'), renderRunReport(root, manifest, result));

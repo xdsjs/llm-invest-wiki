@@ -12,6 +12,8 @@
 
 ## 增量过滤
 
+如果本次 dossier 是 no-op，没有 `result.json` 或 `result.json.created` 为空，则不生成 ingest plan。
+
 先运行：
 
 ```bash

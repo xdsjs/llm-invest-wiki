@@ -36,6 +36,46 @@ scope: file-level-official-materials
 llm-wiki-invest dossier fetch-sec-submissions --cik 0000320193 --recent --forms "10-K,10-Q,8-K,DEF 14A"
 ```
 
+## 增量建档策略
+
+默认按增量维护执行，不做每日全量重建。
+
+先读取 `.llm-wiki-invest/dossier-state.json`：
+
+- `materials` 是已物化材料清单，用于判断具体材料是否已经建档。
+- `checkpoints.sec`、`checkpoints.company`、`checkpoints.governance`、`checkpoints.exchange` 是各来源面的最新已建档日期快照，用于缩小本次 discovery 窗口。
+- 如果已有 `materials` 但没有 checkpoint，先运行 `llm-wiki-invest dossier refresh-state`，从已追踪 source 的 frontmatter 回填增量快照。
+- checkpoint 不是高保真来源，不单独作为跳过依据；真正去重仍以材料身份和内容哈希为准。
+
+### SEC 增量
+
+- 使用 `fetch-sec-submissions --recent` 获取最近 filings 摘要。
+- 优先从 `checkpoints.sec.latestSecFilingDateByDocumentType` 之后的 filing 开始评估；如果 checkpoint 缺失，再回看最近若干期。
+- 只评估最近出现的 `10-K`、`10-Q`、`8-K`、`DEF 14A` 等目标表单。
+- 用 `accession_no + primary_document` 判断材料身份。
+- 已经存在于 dossier state 的 filing 不进入 reviewed manifest，除非 primary document 明确不同。
+- 不为了每日维护重新抓取完整历史 submissions；历史缺口只在用户要求 backfill 时处理。
+
+### 公司官网 / IR 增量
+
+- 优先从 `checkpoints.company.latestPublishedByDocumentType` 之后的材料开始评估；如果 checkpoint 缺失，从最新列表向后检查。
+- 只检查最新季度、最新年度、最新 events / presentations、最新 annual meeting 或 governance 文件。
+- 对时间序列页面，从最新项向后检查；一旦连续命中已存在披露，可停止继续向历史翻页。
+- 用 `canonical_url + published` 判断材料身份。
+- 同一 URL 但正文疑似变化、且无法确认新的 `published` 时，进入 unresolved，不覆盖旧 source。
+- 下载中心、IR 首页、newsroom 列表页只作为发现入口，不落盘。
+
+### Governance 增量
+
+- 优先参考 `checkpoints.governance.latestPublishedByDocumentType`。
+- governance 文件通常低频变化，只检查 canonical 文件列表和发布日期。
+- 如果文件 URL、标题、发布日期均未变，跳过。
+- 如果公司替换了同一政策文件但没有稳定发布日期，进入 unresolved，并说明需要人工确认版本边界。
+
+### No-op
+
+如果本次没有新增候选材料，返回 no-op 摘要，不生成空 manifest，不调用 `dossier apply`。
+
 ## 来源边界
 
 ### 允许的 discovery surface

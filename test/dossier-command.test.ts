@@ -41,6 +41,7 @@ describe('dossier command', () => {
       exchange: string | null;
       template: string;
       materials: Record<string, unknown>;
+      checkpoints: Record<string, unknown>;
     };
 
     expect(state.market).toBe('us');
@@ -50,6 +51,7 @@ describe('dossier command', () => {
     expect(state.exchange).toBe('NASDAQ');
     expect(state.template).toBe('us');
     expect(state.materials).toEqual({});
+    expect(state.checkpoints).toEqual({});
   });
 
   it('should apply a reviewed manifest through the CLI', () => {
@@ -94,6 +96,83 @@ describe('dossier command', () => {
     expect(existsSync(outPath)).toBe(true);
     expect(readFileSync(outPath, 'utf-8')).toContain("title: 'Apple Q1 Results Release'");
     expect(existsSync(join(testDir, '.llm-wiki-invest/dossier-runs/2026-04-25-aapl/report.md'))).toBe(true);
+  });
+
+  it('should refresh legacy dossier state metadata from tracked source files', () => {
+    const sourceDir = join(testDir, 'sources/earnings-release/2026/2026-02-01-q1-results');
+    mkdirSync(sourceDir, { recursive: true });
+    const sourcePath = join(sourceDir, '00-primary-q1-release.md');
+    writeFileSync(sourcePath, `---
+title: 'Apple Q1 Results Release'
+source: 'https://investor.apple.com/q1-release.md'
+author: '[[apple.com]]'
+published: '2026-02-01'
+created: '2026-04-23'
+authority: 'company'
+document_type: 'earnings-release'
+disclosure_key: '2026-02-01-q1-results'
+canonical_url: 'https://investor.apple.com/q1-release.md'
+---
+
+# Q1 Results
+`);
+
+    const statePath = join(testDir, '.llm-wiki-invest/dossier-state.json');
+    const identityKey = 'company:https://investor.apple.com/q1-release.md:2026-02-01';
+    writeFileSync(statePath, JSON.stringify({
+      market: 'us',
+      ticker: 'AAPL',
+      companyName: 'Apple Inc.',
+      cik: '0000320193',
+      exchange: 'NASDAQ',
+      template: 'us',
+      initializedAt: '2026-04-01T00:00:00.000Z',
+      materials: {
+        [identityKey]: {
+          outputPath: sourcePath,
+          contentHash: 'legacyhash',
+        },
+      },
+    }, null, 2));
+
+    const output = execSync(`node ${CLI} dossier refresh-state`, {
+      cwd: testDir,
+      encoding: 'utf-8',
+      env,
+    });
+
+    const state = JSON.parse(readFileSync(statePath, 'utf-8')) as {
+      materials: Record<string, {
+        contentHash: string;
+        authority: string;
+        documentType: string;
+        published: string;
+        canonicalUrl: string;
+        firstSeenAt: string;
+        lastSeenAt: string;
+      }>;
+      checkpoints: {
+        company?: {
+          latestPublished: string;
+          latestPublishedByDocumentType: Record<string, string>;
+          latestIdentityByDocumentType: Record<string, string>;
+        };
+      };
+    };
+
+    expect(output).toContain('Refreshed materials: 1');
+    expect(state.materials[identityKey]).toMatchObject({
+      contentHash: 'legacyhash',
+      authority: 'company',
+      documentType: 'earnings-release',
+      published: '2026-02-01',
+      canonicalUrl: 'https://investor.apple.com/q1-release.md',
+    });
+    expect(state.materials[identityKey].firstSeenAt).toBeTruthy();
+    expect(state.materials[identityKey].lastSeenAt).toBeTruthy();
+    expect(state.checkpoints.company?.latestPublished).toBe('2026-02-01');
+    expect(state.checkpoints.company?.latestPublishedByDocumentType['earnings-release']).toBe('2026-02-01');
+    expect(state.checkpoints.company?.latestIdentityByDocumentType['earnings-release']).toBe(identityKey);
   });
 
   it('should show dossier status summary', () => {

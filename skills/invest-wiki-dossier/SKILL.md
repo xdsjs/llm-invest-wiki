@@ -1,86 +1,127 @@
 ---
 name: invest-wiki-dossier
-description: 为单家上市公司建立事实层 sources。你负责按市场模板发现和审定官方材料，再调用 llm-wiki-invest dossier CLI 落盘为只读 markdown。用于用户要求为一家上市公司建档、抓取 SEC/交易所/IR 文件级材料、或维护官方来源材料时。
+description: Use when maintaining official file-level sources for one listed company in an LLM Wiki Invest vault, including initial dossier creation, incremental official disclosures, SEC/IR/exchange materials, and reviewed manifest application.
 ---
 
 # Invest Wiki Dossier
 
-你负责为单家上市公司发现、审定并物化官方材料。`sources/` 是唯一长期事实层、只读层，不是分析层；dossier 是抓取、审定和运行记录流程，不是 wiki 的引用层。
+为单家上市公司维护 `sources/` 事实层。你的产物是官方文件级材料的 Markdown 派生件，不是分析、总结或 wiki 页面。
 
-## 系统边界
+## 不变量
 
-- 建档材料最终落盘到 `sources/`，只收**文件级官方材料**
-- dossier 落盘的是通过 `markitdown` 物化出来的**近原文 Markdown 派生件**
-- 一份材料对应一个 `.md` 文件
+- `sources/` 是长期事实层；只写官方或监管/交易所控制的文件级材料。
+- 默认执行增量维护；只有首次建档、补历史缺口或用户明确要求 backfill 时才扩大范围。
+- 不直接手工改写已落盘 source 正文；材料下载、转换、去重、状态更新交给 `llm-wiki-invest dossier` CLI。
+- 不把推断写入 source frontmatter 或正文；无法确认就进入 unresolved。
 
-## 角色分工
+## 可执行的 CLI 工具
 
-- 你是**编排层**
-- `llm-wiki-invest dossier` CLI 是**执行层**
-- CLI 不负责 discover，也不直接调用 LLM
-- 你负责：
-  - 读取市场模板
-  - 解析公司身份
-  - 从官方入口发现候选文件
-  - 判断哪些文件可进入官方建档 sources
-  - 归类 `authority` / `document_type` / `disclosure_key`
-  - 产出 reviewed manifest
-- CLI 负责：
-  - 初始化 dossier 状态
-  - 读取 reviewed manifest
-  - 为每次 apply 建立 `.llm-wiki-invest/dossier-runs/<run-id>/`
-  - 写入 `result.json`，供 ingest 从 run 目录解析本次 created sources
-  - 下载与转换材料
-  - 落盘为 Markdown
-  - 去重
-  - unresolved 输出
-  - 状态与检查
+- `dossier init` 初始化状态。
+- `dossier refresh-state` 从已追踪 source 回填旧 state 的材料元数据和 checkpoints。
+- `dossier fetch-sec-submissions` 抓取 SEC submissions 辅助信息。
+- `dossier apply` 下载、markitdown 转换、落盘、去重、写 run record。
+- `dossier status` / `dossier check` 做结果检查。
 
-## 美国上市公司
+## 市场模板
 
-当目标是美国上市公司时，先读取同目录下的 `template/us.md`。它定义了：
+根据输入信息，先确定市场，再读取对应模板。
 
-- 市场特有的来源边界
-- HTML 页面准入规则
-- `authority` / `document_type` / `disclosure_key` 的归类规则
-- 路径、frontmatter、去重与 unresolved 规则
+- 美国上市公司：读取 `template/us.md`。
+- 没有对应模板的市场：停止，说明当前 skill 不支持该市场，不要临时发明规则。
 
-工作流、CLI 调用顺序、reviewed manifest 产出责任，以本 `SKILL.md` 为准；`template/us.md` 只保留美国市场特有规则。
+模板负责市场细则；本文件负责通用执行顺序。
 
-## 标准工作流
+## 状态读取
 
-1. 读取模板，确认市场范围和排除项。
-2. 解析公司身份，至少确认：
-   - `ticker`
-   - `company_name`
-   - `cik`（如果适用）
-   - `exchange`
-   - 如果目标是美国上市公司，优先使用 `llm-wiki-invest dossier fetch-sec-submissions --cik <cik> --recent --forms "10-K,10-Q,8-K,DEF 14A"` 作为 SEC 抓取辅助，确认最近 filings 和公司身份。
-3. 调用 CLI 初始化 dossier 状态：
-   - `llm-wiki-invest dossier init --market ... --ticker ... --company-name ... [--cik ...] [--exchange ...]`
-4. 严格按模板从官方入口发现**文件级**材料，不把 HTML 页面本身写入 dossier。
-5. 为每个可接受材料生成 reviewed manifest，至少包含：
-   - `title`
-   - `source`
-   - `canonicalUrl`
-   - `author`
-   - `published`
-   - `authority`
-   - `documentType`
-   - `disclosureKey`
-   - `sequence`
-   - `suggestedFilename`
-   - 并确保 `sequence` 在目标 disclosure 目录内唯一
-6. 调用 CLI 落盘：
-   - `llm-wiki-invest dossier apply <manifest.json>`
-   - 如需稳定审计路径，可加 `--run-id <YYYY-MM-DD-ticker-purpose>`
-7. 用下面两个命令检查结果：
-   - `llm-wiki-invest dossier status`
-   - `llm-wiki-invest dossier check`
-8. 查看 `.llm-wiki-invest/dossier-runs/<run-id>/report.md`，确认本次 created / skipped / unresolved。机器消费使用同目录的 `result.json`。若有未能稳定处理的材料，同时查看该 run 下的 `unresolved/` 和全局 `.llm-wiki-invest/dossier-unresolved/`，不要猜测补齐。
+每次开始先读取 `.llm-wiki-invest/dossier-state.json`。
 
-## 输出规则
+- 不存在：按首次建档处理，先确认公司身份，再运行 `llm-wiki-invest dossier init --market ... --ticker ... --company-name ... [--cik ...] [--exchange ...]`。
+- 已存在：以 state 中的 `ticker`、`companyName`、`cik`、`exchange` 为准；如果用户输入冲突，先停止说明冲突。
+- 旧 state 有 `materials` 但缺少材料元数据或 `checkpoints`：先运行 `llm-wiki-invest dossier refresh-state`。
+- `materials` 是已建档材料身份表；用于判断具体材料是否已追踪。
+- `checkpoints` 只用于缩小 discovery 窗口；不能单独作为跳过材料的依据。
 
-- 不能把你的推断写入来源 frontmatter 或正文
-- 同一材料再次出现时要避免重复落盘
-- 真的无法判定时，宁可进入 unresolved，也不要硬分类
+## 增量策略
+
+增量维护只检查最近可能新增或变化的官方材料。
+
+- SEC 材料身份：`accession_no + primary_document`。
+- 非 SEC 材料身份：`canonical_url + published`。
+- 已存在且内容未变的材料不要主动加入 manifest；即使误加入，CLI 也会按 state 去重。
+- 同一 canonical URL 疑似变化但无法确认新的 `published`：进入 unresolved，不覆盖旧 source。
+- 连续命中已存在历史材料时，可以停止向更早历史翻页。
+- 没有新增或明确变化候选时，输出 no-op，不生成空 manifest，不调用 `dossier apply`。
+
+## 候选材料准入
+
+候选材料必须同时满足：
+
+- 来源属于模板允许的 official discovery surface。
+- 材料本身是文件级正式内容，而不是索引页、导航页或摘要页。
+- 有稳定 `source` 和 `canonicalUrl`。
+- 能确定官方发布日期 `published`。
+- 能确定 `authority`、`documentType`、`disclosureKey`。
+- 能确定材料身份键。
+- 预期能被 CLI 稳定物化为可读 Markdown。
+
+不满足任一条件时，不要硬写入 manifest；需要保留线索时进入 unresolved。
+
+## Reviewed Manifest
+
+只把通过准入且需要落盘的材料放入 manifest。每个 material 至少包含：
+
+- `companyName`
+- `ticker`
+- `market`
+- `authority`
+- `title`
+- `source`
+- `canonicalUrl`
+- `author`
+- `published`
+- `documentType`
+- `disclosureKey`
+- `sequence`
+- `suggestedFilename`
+
+SEC material 还必须包含：
+
+- `accessionNo`
+- `primaryDocument`
+
+`sequence` 在目标目录 `sources/{documentType}/{year}/{disclosureKey}/` 内必须唯一。同一次披露下同一种文件类型有多个文件时，共用同一个 `disclosureKey`，用不同 `sequence` 区分。
+
+## Apply 与检查
+
+有 manifest 时执行：
+
+```bash
+llm-wiki-invest dossier apply <manifest.json> --run-id <YYYY-MM-DD-ticker-purpose>
+llm-wiki-invest dossier status
+llm-wiki-invest dossier check
+```
+
+然后读取 `.llm-wiki-invest/dossier-runs/<run-id>/result.json`：
+
+- `created` 是本次新增 source，供上层 flow 或 ingest 使用。
+- `skippedDuplicates` 是已存在且内容未变的材料。
+- `unresolved` 需要人工或后续规则处理。
+
+同时查看同目录 `report.md`。如果有 unresolved，再查看 run 内 `unresolved/` 和全局 `.llm-wiki-invest/dossier-unresolved/`。
+
+## 输出格式
+
+no-op 时只报告：
+
+- 检查了哪些官方 surface。
+- 依据哪些 state checkpoints 或材料身份判断无新增。
+- 是否存在需要人工确认的 unresolved 线索。
+
+apply 后只报告：
+
+- run id 和 run 目录。
+- created / skipped / unresolved 数量。
+- created source 路径。
+- unresolved 的具体原因。
+
+不要输出长篇抓取过程，不要写投资判断。

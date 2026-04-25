@@ -15,7 +15,7 @@
 
 绝不要手工修改 `sources/` 下已有来源的正文内容。`sources/` 是唯一长期事实层；外部文件、dossier run 或下载缓存必须先物化为 `sources/` 下的 source，才能被 wiki 引用。已有来源唯一允许的更新是通过 `llm-wiki-invest sources mark-ingested` 写入 ingest 状态字段。正文编辑应当发生在 `wiki/` 中。
 
-每次执行完操作后，无论是 dossier、ingest、query、lint 还是 research，都要在 `wiki-log.md` 追加一条单行记录，并运行 `llm-wiki-invest sync`。不要因为改动小就跳过。日志是给人审计的，sync 则用来保持 embedding 和 DB9 状态同步。
+每次实际产生 sources、wiki、plan 或 run record 变更后，都要在 `wiki-log.md` 追加一条单行记录，并运行 `llm-wiki-invest sync`。如果本次增量维护没有任何变化，可以只输出 no-op 摘要，不强行写 wiki。
 
 ## 执行步骤
 
@@ -30,11 +30,16 @@
 
 ### step2: 建档（dossier），维护source
 
-调用 Skill tool 执行 `invest-wiki-dossier`，传入公司身份。等待完成，获取建档结果：`result.json`。
+调用 Skill tool 执行 `invest-wiki-dossier`，传入公司身份。默认执行增量维护：只发现最近新增或变化的官方文件级材料，不做全量重建。
+
+等待 dossier 完成后：
+
+- 如果返回 no-op，说明本次没有新增 source，停止本轮 flow。
+- 如果调用了 `dossier apply`，获取本次 run 的 `result.json`。
 
 ### step3: 规划ingest plan
 
-根据建档结果：`result.json`，读取 `template/listed-company-ingest-plan.md`，生成 ingest 计划。
+根据建档结果：`result.json`，读取 `template/listed-company-ingest-plan.md`，生成 ingest 计划。计划只覆盖 `result.json.created` 范围内、且 `sources pending` 判定为 `new` 或 `changed` 的 source。
 
 ### step4: 执行摄取（ingest）任务
 
