@@ -54,7 +54,7 @@ my-wiki/
 ├── CLAUDE.md              # Claude Code 的 agent 引导文件（自动加载）
 ├── AGENTS.md              # Codex 的 agent 引导文件（自动加载）
 ├── wiki-purpose.md        # Wiki 的范围与目标受众
-├── wiki-schema.md         # 页面类型、命名规则、frontmatter 规则
+├── wiki-schema.md         # 页面类型、命名规则、引用和 frontmatter 规则
 ├── wiki-log.md            # 追加式操作日志
 ├── wiki/                  # 由 AI 维护的 wiki 页面（兼容 Obsidian）
 ├── sources/               # 原始、不可变的来源材料和官方建档材料
@@ -100,7 +100,7 @@ LLM Wiki Invest 使用两层文件结构，让任意 AI agent 在无需手工配
 
 **升级。** `llm-wiki-invest init` 仍然是唯一的初始化命令，它会写入入口文件并安装 skill。升级 npm 包之后，运行 `llm-wiki-invest skill install` 即可刷新 skill 文件。你自己对 `CLAUDE.md` / `AGENTS.md` 的修改在重新安装后仍会保留。
 
-批量 ingest 时，agent 会在 `.llm-wiki-invest/ingest-plans/` 写入计划和执行记录。计划由 agent 消费，不是 CLI 输入。上市公司官方 sources 默认使用 `invest-wiki-ingest/template/company.md` 约束标准 wiki 页面和路由。
+批量 ingest 时，agent 会在 `.llm-wiki-invest/ingest-plans/` 写入计划和执行记录。计划由 agent 消费，不是 CLI 输入。上市公司 wiki 的页面类型和页面骨架由 `wiki-schema.md` 定义；官方 sources 的目标页面由 agent 在 plan 阶段根据 source 实际内容选择，`document_type` 只作为阅读背景和优先级信号。
 
 ## 操作
 
@@ -182,6 +182,7 @@ url = "your-db9-connection-string"
 
 - YAML frontmatter
 - `[[wikilink]]` 交叉引用
+- 正文脚注和末尾 `## Refs` 来源引用
 - 可直接在 Obsidian 中打开、浏览、看图谱和编辑
 
 其中：

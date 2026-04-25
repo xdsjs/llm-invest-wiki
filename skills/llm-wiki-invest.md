@@ -49,13 +49,13 @@
      title: 综合标题
      description: 一行摘要
      tags: [synthesis]
-     sources: [贡献该结论的 wiki 页面]
      source_type: query-synthesis
      created: YYYY-MM-DD
      updated: YYYY-MM-DD
      ---
      ```
    - 添加指向源页面的 `[[wikilinks]]`
+   - 对贡献该综合结论的 wiki 页面或 source，在正文中使用脚注，并在文件末尾 `## Refs` 统一列出
    - 更新相关页面中的交叉引用
    - 向 `wiki-log.md` 追加：
      ```
@@ -78,7 +78,7 @@
   - 只是从单个页面里查出来的简单事实
   - 回答严重依赖 wiki 之外的信息
   - 综合结果带有明显猜测或低置信度
-- 写回的综合页面必须包含完整 frontmatter，包括 `sources` 和 `source_type: query-synthesis`。
+- 写回的综合页面必须包含完整 frontmatter，包括 `source_type: query-synthesis`；来源追溯放在正文脚注和末尾 `## Refs`，不要放进 frontmatter。
 
 ## /lint
 
@@ -96,15 +96,15 @@
 #### 结构问题
 - **坏链接**：`[[wikilinks]]` 指向不存在的页面
 - **孤儿页**：没有被任何其他页面链接进来的页面
-- **缺少 frontmatter**：页面缺少必需字段（title、description、tags、sources、updated）。issue/bug 页面还必须有 `status`
+- **缺少 frontmatter**：页面缺少必需字段（title、description、tags、updated）。issue/bug 页面还必须有 `status`
 - **缺少 aliases**：页面有明显别名或常用称呼，但没有 `aliases`
 - **命名违规**：页面名不符合 `wiki-schema.md` 的规则
 - **主题重复**：多个页面覆盖了同一个实体 / 概念（可结合 `aliases` 判断）
 
 #### 内容问题
 - **矛盾**：多个页面对同一主题给出冲突说法（可比较共享 `[[wikilinks]]` 或标签的页面）
-- **陈旧内容**：页面 `updated` 日期早于其来源文件的修改时间
-- **无来源结论**：frontmatter 中 `sources` 为空或缺失
+- **陈旧内容**：页面 `updated` 日期早于其 `## Refs` 引用来源文件的修改时间
+- **无来源结论**：页面存在 source-derived 事实，但缺少正文脚注或末尾 `## Refs`
 - **过浅页面**：除去 frontmatter 后正文不足 3 句，应扩充或合并
 
 #### 来源问题
@@ -126,7 +126,7 @@
    ### 警告
    - **孤儿页**：[[page-d]] — 没有入链
    - **陈旧**：[[page-e]] — 自 YYYY-MM-DD 起未更新
-   - **无来源**：[[page-f]] — 未列出来源
+   - **无来源**：[[page-f]] — 缺少正文脚注或 `## Refs`
 
    ### 提示
    - **过浅页面**：[[page-g]] — 只有 2 句，建议扩写
@@ -239,6 +239,6 @@
 
 - **来源多样性**：不要依赖单一来源，关键结论要交叉验证，至少对照 2 个以上来源。
 - **时效性**：记录来源发布日期。对于变化快的领域，超过 2 年的信息要明确标记。
-- **可追溯性**：每个结论都必须能通过 frontmatter 中的 `sources` 回溯到来源。
+- **可追溯性**：每个 source-derived 结论都必须能通过正文脚注和末尾 `## Refs` 回溯到来源。
 - **范围纪律**：始终围绕研究问题推进。遇到有价值但超出范围的支线，只记录为“建议后续研究”，不要当场扩展。
 - Research 是成本最高的操作：它会先调用 Query，再收集外部来源，然后对每个来源执行 Ingest。只有在 Query 不足以回答问题时才使用。

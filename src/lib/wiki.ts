@@ -20,13 +20,39 @@ export interface WikiPage {
 
 const WIKILINK_RE = /\[\[([^\]|]+)(?:\|[^\]]+)?\]\]/g;
 
-export function extractWikilinks(content: string): string[] {
+function normalizeLinkTarget(link: string): string {
+  return link.trim().replace(/^\//, '');
+}
+
+function normalizeSourceRef(link: string): string | null {
+  const target = normalizeLinkTarget(link);
+  if (!target.startsWith('sources/')) {
+    return null;
+  }
+  return target.slice('sources/'.length);
+}
+
+function extractAllWikilinkTargets(content: string): string[] {
   const links: string[] = [];
   let match: RegExpExecArray | null;
   while ((match = WIKILINK_RE.exec(content)) !== null) {
-    links.push(match[1].trim());
+    links.push(normalizeLinkTarget(match[1]));
   }
   return [...new Set(links)];
+}
+
+export function extractWikilinks(content: string): string[] {
+  return extractAllWikilinkTargets(content).filter(link => normalizeSourceRef(link) === null);
+}
+
+export function extractSourceRefs(content: string): string[] {
+  return [
+    ...new Set(
+      extractAllWikilinkTargets(content)
+        .map(normalizeSourceRef)
+        .filter((source): source is string => source !== null)
+    ),
+  ];
 }
 
 export function listMarkdownFiles(dir: string): string[] {
@@ -50,6 +76,10 @@ export function parseWikiPage(filePath: string, wikiDir: string): WikiPage {
   const stat = statSync(filePath);
   const rel = relative(wikiDir, filePath);
   const slug = rel.replace(/\.md$/, '');
+  const frontmatterSources = Array.isArray(data.sources)
+    ? data.sources.map(String).map(normalizeLinkTarget)
+    : [];
+  const sources = [...new Set([...frontmatterSources, ...extractSourceRefs(content)])];
 
   return {
     path: filePath,
@@ -58,7 +88,7 @@ export function parseWikiPage(filePath: string, wikiDir: string): WikiPage {
     title: data.title ?? basename(filePath, '.md'),
     description: data.description,
     tags: Array.isArray(data.tags) ? data.tags : [],
-    sources: Array.isArray(data.sources) ? data.sources : [],
+    sources,
     created: data.created,
     updated: data.updated,
     aliases: Array.isArray(data.aliases) ? data.aliases : [],

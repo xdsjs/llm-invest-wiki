@@ -25,7 +25,7 @@ description: Use when running /ingest in an llm-wiki-invest vault, processing pe
 
 1. **增量保护**：先运行 `llm-wiki-invest sources pending --json` 查看未 ingest 或已变化的来源。单文件 ingest 时，只处理该文件；目录或批量 ingest 时，按 `sources/` 目录分组整理候选来源，再由 agent 生成计划。判断规则是：没有 `ingested` 为新来源；有 `ingested` 但 `ingest_hash` 与当前内容不一致为 changed；否则跳过。
 2. 读取 `wiki-purpose.md`、`wiki-schema.md` 和 `wiki-agent.md`（如果存在），理解这个 wiki 的范围、页面类型、命名规则、结构要求，以及 ingest 标准（MUST / MAY / NEVER）。如果 `wiki-agent.md` 不存在，则使用 `CLAUDE.md` / `AGENTS.md` 中的默认标准。
-3. 如果是上市公司官方建档材料，读取同目录下的 `template/company.md`，用其中的标准页面和 `document_type` 路由约束计划。
+3. 如果是上市公司官方建档材料，以 `wiki-schema.md` 的页面类型和页面规范为准，再读取同目录下的 `template/listed-company-plan.md`，用其中的页面选择原则和计划规则生成 ingest plan；
 4. **ingest 过滤**：根据 MUST / MAY / NEVER 规则评估输入。匹配 NEVER 的内容（闲聊、凭证、重复信息、纯表情等）直接丢弃；匹配 MUST 的必须处理；匹配 MAY 的按判断处理。如果输入被过滤掉，静默跳过，不需要写日志。
 5. 读取用户提供的源材料。
 6. 判断这次 ingest 是否需要先和用户讨论再改 wiki 页面：
@@ -59,19 +59,20 @@ description: Use when running /ingest in an llm-wiki-invest vault, processing pe
    description: 一行摘要
    aliases: [别名, 缩写, 翻译名]
    tags: [来自 wiki-schema.md 的领域标签]
-   sources: [YYYY-MM-DD/source-filename.md]
    status: open | resolved | wontfix  # issue/bug 页面必填
    created: YYYY-MM-DD
    updated: YYYY-MM-DD
    ---
    ```
-   - `sources` 字段是**必填项**。填写相对于 `sources/` 的路径，不要带 `sources/` 前缀。
+   - 不要在 wiki 页面的 frontmatter 中写 `sources`。来源引用必须进入正文脚注和文件末尾 `## Refs`。
    - `aliases` 应包含常见缩写、翻译名和其他常用称呼（例如 `Strategy` → `aliases: [Strategy, 认证策略]`），这样能改善搜索和 wikilink 匹配。
    - `status` 字段对 issue/bug 页面是**必填项**（`open`、`resolved`、`wontfix`）。不要只在正文里写状态，必须放到 frontmatter 里，便于机器读取。
    - 更新已有页面时，要**合并**新信息。除非被更权威或更新的来源推翻，否则不要覆盖旧内容。如果存在冲突，要同时注明两方来源。
    - 要积极使用 `[[wikilinks]]`。任何已经有页面或应该有页面的实体，都应该被链接。
    - 每个页面聚焦一个主题。如果某个章节过大，就拆成独立页面。
-   - 在页面底部添加 `## Related` 部分：`- [[page-name]] — 一句关系说明`
+   - 正文中来自 source 的关键事实、数字、管理层表述、风险变化，都要使用脚注标记，例如 `营收同比增长 4%[^src-1]`。
+   - 文件末尾必须添加 `## Refs`，用脚注定义列出可点击来源：`[^src-1]: [[sources/<relative-source-path>|来源标题]] — 支撑哪些内容`。
+   - 在 `## Refs` 之前添加 `## Related` 部分：`- [[page-name]] — 一句关系说明`
 13. 给源文件本身补充 frontmatter。优先使用 CLI：
     ```bash
     llm-wiki-invest sources mark-ingested <source paths...> --pages wiki/page-a.md,wiki/page-b.md
@@ -101,8 +102,8 @@ description: Use when running /ingest in an llm-wiki-invest vault, processing pe
 - 如果你提到一个还没有 wiki 页面的实体，也依然要写成 `[[wikilink]]`，这样它会变成可发现的“待写页面”。
 - 当结构、命名或范围存在不确定性时，ingest 应当以协作方式进行；但在既有框架下的直接补充，可以直接落地。
 - 使用符合 `wiki-schema.md` 约定的、可读的 slug。
-- frontmatter 里的 `sources` 是强制要求，所有结论都必须可追溯。
+- wiki 页面 frontmatter 不放来源列表；所有 source-derived 结论都必须通过正文脚注和末尾 `## Refs` 回溯到 `sources/`。
 
-## Invest 公司模板
+## 上市公司 Plan 模板
 
-当 sources 是上市公司官方建档材料时，额外读取 `template/company.md`。它只提供投资领域页面类型、页面骨架和 `document_type` 路由，不替代上面的通用 ingest 流程。
+当 sources 是上市公司官方建档材料时，额外读取 `template/listed-company-plan.md`。长期 wiki 结构规范以 `wiki-schema.md` 为准；`listed-company-plan.md` 只用于生成和审计 ingest plan，不定义 wiki 页面结构，也不替代上面的通用 ingest 流程。

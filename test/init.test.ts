@@ -56,9 +56,9 @@ describe('init command', () => {
     expect(existsSync(join(agentsDossier, 'agents/openai.yaml'))).toBe(true);
     expect(existsSync(join(agentsDossier, 'template/us.md'))).toBe(true);
     expect(existsSync(join(claudeIngest, 'SKILL.md'))).toBe(true);
-    expect(existsSync(join(claudeIngest, 'template/company.md'))).toBe(true);
+    expect(existsSync(join(claudeIngest, 'template/listed-company-plan.md'))).toBe(true);
     expect(existsSync(join(agentsIngest, 'SKILL.md'))).toBe(true);
-    expect(existsSync(join(agentsIngest, 'template/company.md'))).toBe(true);
+    expect(existsSync(join(agentsIngest, 'template/listed-company-plan.md'))).toBe(true);
     // Content must match (not just empty file)
     const claudeContent = readFileSync(claudeSkill, 'utf-8');
     const agentsContent = readFileSync(agentsSkill, 'utf-8');

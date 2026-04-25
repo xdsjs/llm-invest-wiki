@@ -40,7 +40,7 @@ describe('skills library', () => {
     expect(existsSync(join(testDir, 'invest-wiki-dossier', 'agents', 'openai.yaml'))).toBe(true);
     expect(existsSync(join(testDir, 'invest-wiki-dossier', 'template', 'us.md'))).toBe(true);
     expect(existsSync(join(testDir, 'invest-wiki-ingest', 'SKILL.md'))).toBe(true);
-    expect(existsSync(join(testDir, 'invest-wiki-ingest', 'template', 'company.md'))).toBe(true);
+    expect(existsSync(join(testDir, 'invest-wiki-ingest', 'template', 'listed-company-plan.md'))).toBe(true);
   });
 
   it('should not overwrite an existing bundled skill when overwrite is false', () => {

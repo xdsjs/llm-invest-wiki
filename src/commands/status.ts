@@ -45,9 +45,9 @@ export const statusCommand = new Command('status')
     if (!existsSync(paths.purpose)) issues.push('wiki-purpose.md missing');
     if (!existsSync(paths.schema)) issues.push('wiki-schema.md missing');
 
-    const pagesWithoutSources = pages.filter(p => p.sources.length === 0);
-    if (pagesWithoutSources.length > 0) {
-      issues.push(`${pagesWithoutSources.length} pages without sources`);
+    const pagesWithoutRefs = pages.filter(p => p.sources.length === 0);
+    if (pagesWithoutRefs.length > 0) {
+      issues.push(`${pagesWithoutRefs.length} pages without source refs`);
     }
 
     // Find broken wikilinks
