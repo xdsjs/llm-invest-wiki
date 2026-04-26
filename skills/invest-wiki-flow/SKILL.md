@@ -30,12 +30,10 @@
 
 ### step2: 建档（dossier），维护source
 
-调用 Skill tool 执行 `invest-wiki-dossier`，传入公司身份。默认执行增量维护：只发现最近新增或变化的官方文件级材料，不做全量重建。
-
-等待 dossier 完成后：
-
-- 如果返回 no-op，说明本次没有新增 source，停止本轮 flow。
-- 如果调用了 `dossier apply`，获取本次 run 的 `result.json`。
+1. 调用 Skill tool 执行 `invest-wiki-dossier`，传入公司身份。默认执行增量维护：只发现最近新增或变化的官方文件级材料，不做全量重建。
+2. 等待 dossier 完成后：
+   - 如果返回 no-op，说明本次没有新增 source，停止本轮 flow。
+   - 如果调用了 `dossier apply`，获取本次 run 的 `result.json`。
 
 ### step3: 规划ingest plan
 
@@ -43,7 +41,20 @@
 
 ### step4: 执行摄取（ingest）任务
 
-针对 ingest 计划，可启动不超过5个的 Agent subagent 并行处理。每个 subagent 执行以下步骤：
+1. 针对 ingest 计划，可启动不超过5个的 Agent subagent 并行处理。每个 subagent 执行以下步骤：
+   - 步骤一：调用 Skill tool 执行 `invest-wiki-ingest`，传入要处理的源md文档<path>，注意一次只能处理一个md文档，等待完成。
+   - 步骤二：重复步骤一直到全部源md文档处理完成。
 
-1. 调用 Skill tool 执行 `invest-wiki-ingest`，传入要处理的源md文档<path>，注意一次只能处理一个md文档，等待完成。
-2. 重复步骤一直到全部源md文档处理完成。
+### step4: 汇总报告
+
+所有 `ingest` 处理完成后，汇总输出：
+
+```
+════ ingest done ═══════════════════════
+📄 {wiki标题1}
+   📝 <status:新增/更新>: {文件路径}
+
+📄 {wiki标题2}
+   📝 <status:新增/更新>: {文件路径}
+...
+```
