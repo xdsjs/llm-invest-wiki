@@ -42,7 +42,7 @@ Codex 会按需加载这些 skill。
 
 - \`wiki/\`：由 AI 维护的 wiki 页面（兼容 Obsidian）
 - \`wiki-agent.md\`：agent 行为规则（可选，vault 专属）
-- \`sources/\`：原始来源材料和官方建档材料（不可修改）
+- \`sources/\`：原始来源材料和官方建档材料（正文不可修改；ingest 状态写入 frontmatter）
 - \`wiki-log.md\`：追加式操作日志
 - \`.llm-wiki-invest/\`：配置和同步状态
 - \`.llm-wiki-invest/ingest-plans/\`：agent 生成的 ingest 计划与执行记录

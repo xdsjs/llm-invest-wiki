@@ -37,7 +37,7 @@
 
 ### step3: 规划ingest plan
 
-根据建档结果：`result.json`，读取 `template/listed-company-ingest-plan.md`，生成 ingest 计划。计划只覆盖 `result.json.created` 范围内、且 `sources pending` 判定为 `new` 的 source。
+根据建档结果：`result.json`，读取当前 skill 目录下的 `template/listed-company-ingest-plan.md`（即相对 `invest-wiki-flow/SKILL.md` 解析），生成 ingest 计划。计划只覆盖 `result.json.created` 范围内、且 `sources pending` 判定为 `new` 的 source。
 
 ### step4: 执行摄取（ingest）任务
 
