@@ -1,13 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import matter from 'gray-matter';
 import {
   listPendingSourceGroups,
   listPendingSourceGroupsForPath,
-  markSourcesIngested,
-  sourceContentHash,
 } from '../src/lib/source-ingest.js';
 
 let testDir: string;
@@ -24,7 +21,7 @@ afterEach(() => {
 });
 
 describe('source ingest helpers', () => {
-  it('should ignore ingest tracking fields when computing source hash', () => {
+  it('should list sources without ingested frontmatter as new', () => {
     const sourcePath = join(testDir, 'sources/earnings-release/2026/q1-results/00-release.md');
     writeFileSync(sourcePath, `---
 title: Release
@@ -32,39 +29,6 @@ source: https://example.com/release
 authority: company
 document_type: earnings-release
 disclosure_key: q1-results
----
-
-# body
-`);
-
-    const before = sourceContentHash(sourcePath);
-    writeFileSync(sourcePath, `---
-title: Release
-source: https://example.com/release
-authority: company
-document_type: earnings-release
-disclosure_key: q1-results
-ingested: 2026-04-25
-ingest_hash: older
-wiki_pages:
-  - wiki/events/q1-results.md
----
-
-# body
-`);
-
-    expect(sourceContentHash(sourcePath)).toBe(before);
-  });
-
-  it('should list new sources and mark them as clean after ingest', () => {
-    const sourcePath = join(testDir, 'sources/earnings-release/2026/q1-results/00-release.md');
-    writeFileSync(sourcePath, `---
-title: Release
-source: https://example.com/release
-authority: company
-document_type: earnings-release
-disclosure_key: q1-results
-published: 2026-02-01
 ---
 
 # body
@@ -73,17 +37,31 @@ published: 2026-02-01
     const pending = listPendingSourceGroups(testDir);
     expect(pending).toHaveLength(1);
     expect(pending[0].sources[0].status).toBe('new');
+  });
 
-    markSourcesIngested(testDir, ['sources/earnings-release/2026/q1-results/00-release.md'], [
-      'wiki/events/q1-results.md',
-    ]);
+  it('should treat sources with ingested frontmatter as clean', () => {
+    const sourcePath = join(testDir, 'sources/earnings-release/2026/q1-results/00-release.md');
+    writeFileSync(sourcePath, `---
+title: Release
+source: https://example.com/release
+authority: company
+document_type: earnings-release
+disclosure_key: q1-results
+published: 2026-02-01
+ingested: 2026-04-26
+wiki_pages:
+  - wiki/events/q1-results.md
+---
 
-    const raw = readFileSync(sourcePath, 'utf-8');
-    const { data } = matter(raw);
-    expect(data.ingested).toBeTruthy();
-    expect(data.ingest_hash).toBe(sourceContentHash(sourcePath));
-    expect(data.wiki_pages).toEqual(['wiki/events/q1-results.md']);
+# body
+`);
+
     expect(listPendingSourceGroups(testDir)).toEqual([]);
+
+    const clean = listPendingSourceGroups(testDir, true);
+    expect(clean).toHaveLength(1);
+    expect(clean[0].sources[0].status).toBe('clean');
+    expect(clean[0].sources[0].wikiPages).toEqual(['wiki/events/q1-results.md']);
   });
 
   it('should derive pending candidates from a dossier run result', () => {

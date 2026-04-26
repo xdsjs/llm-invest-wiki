@@ -13,7 +13,7 @@
 
 如果存在 `wiki-agent.md`，也要一并读取。它定义了这个 vault 专属的 agent 身份，以及 MUST / MAY / NEVER 的 ingest 标准，会覆盖 `CLAUDE.md` / `AGENTS.md` 中的默认规则。如果不存在，则回退到 bootstrap 文件里的默认规则。
 
-绝不要手工修改 `sources/` 下已有来源的正文内容。`sources/` 是唯一长期事实层；外部文件、dossier run 或下载缓存必须先物化为 `sources/` 下的 source，才能被 wiki 引用。已有来源唯一允许的更新是通过 `llm-wiki-invest sources mark-ingested` 写入 ingest 状态字段。正文编辑应当发生在 `wiki/` 中。
+绝不要手工修改 `sources/` 下已有来源的正文内容。`sources/` 是唯一长期事实层；外部文件、dossier run 或下载缓存必须先物化为 `sources/` 下的 source，才能被 wiki 引用。已有来源唯一允许的更新是补充 `ingested` 和 `wiki_pages` frontmatter。正文编辑应当发生在 `wiki/` 中。
 
 每次实际产生 sources、wiki、plan 或 run record 变更后，都要在 `wiki-log.md` 追加一条单行记录，并运行 `llm-wiki-invest sync`。如果本次增量维护没有任何变化，可以只输出 no-op 摘要，不强行写 wiki。
 
@@ -39,7 +39,7 @@
 
 ### step3: 规划ingest plan
 
-根据建档结果：`result.json`，读取 `template/listed-company-ingest-plan.md`，生成 ingest 计划。计划只覆盖 `result.json.created` 范围内、且 `sources pending` 判定为 `new` 或 `changed` 的 source。
+根据建档结果：`result.json`，读取 `template/listed-company-ingest-plan.md`，生成 ingest 计划。计划只覆盖 `result.json.created` 范围内、且 `sources pending` 判定为 `new` 的 source。
 
 ### step4: 执行摄取（ingest）任务
 

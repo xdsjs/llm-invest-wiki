@@ -34,7 +34,6 @@ description: Use when checking or repairing the structure, links, sources, front
    - 过浅页面：除去 frontmatter 后正文不足 3 句，应扩充或合并。
 6. 检查来源问题：
    - 未 ingest 来源：`llm-wiki-invest sources pending [path]` 中状态为 `new` 的文件。
-   - 来源漂移：`llm-wiki-invest sources pending [path]` 中状态为 `changed` 的文件。
 7. 输出结构化报告。
 8. 如果显式请求了 `--fix`，只应用安全修复。
 9. 在 `.llm-wiki-invest/lint-result.yaml` 写入机器可读结果。

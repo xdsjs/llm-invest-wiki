@@ -3,22 +3,14 @@ import { requireVaultRoot } from '../lib/config.js';
 import {
   listPendingSourceGroups,
   listPendingSourceGroupsForPath,
-  markSourcesIngested,
 } from '../lib/source-ingest.js';
 
-function parsePages(pages: string): string[] {
-  return pages
-    .split(',')
-    .map(page => page.trim())
-    .filter(Boolean);
-}
-
 export const sourcesCommand = new Command('sources')
-  .description('Inspect and mark source ingest state');
+  .description('Inspect source ingest state');
 
 sourcesCommand
   .command('pending')
-  .description('List sources that have not been ingested or have changed since ingest')
+  .description('List sources that have not been ingested')
   .argument('[path]', 'optional source file/directory or dossier run directory')
   .option('--all', 'include already-ingested clean sources')
   .option('--json', 'emit JSON')
@@ -53,24 +45,5 @@ sourcesCommand
         console.log(`  - ${source.path.split('/').pop()} [${source.status}]${summary}`);
       }
       console.log('');
-    }
-  });
-
-sourcesCommand
-  .command('mark-ingested')
-  .description('Mark source files as ingested after the agent updates wiki pages')
-  .argument('<paths...>', 'source file paths under sources/')
-  .requiredOption('--pages <pages>', 'comma-separated wiki page paths created or updated from these sources')
-  .action((inputPaths: string[], opts: { pages: string }) => {
-    const root = requireVaultRoot();
-    const pages = parsePages(opts.pages);
-    if (pages.length === 0) {
-      throw new Error('--pages must include at least one wiki page path');
-    }
-
-    const updated = markSourcesIngested(root, inputPaths, pages);
-    console.log(`Marked ingested: ${updated.length}`);
-    for (const source of updated) {
-      console.log(`  ${source.path}`);
     }
   });

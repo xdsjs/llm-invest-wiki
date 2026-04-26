@@ -20,7 +20,7 @@
 llm-wiki-invest sources pending .llm-wiki-invest/dossier-runs/<run-id> --json
 ```
 
-只规划状态为 `new` 或 `changed` 的 source。`clean` source 不进入计划。
+只规划状态为 `new` 的 source。`clean` source 不进入计划。
 
 ## Batch 原则
 
@@ -44,7 +44,7 @@ llm-wiki-invest sources pending .llm-wiki-invest/dossier-runs/<run-id> --json
 # Ingest Plan — <run-id>
 
 ## Sources
-- [ ] sources/.../file-a.md — new | changed；一句说明
+- [ ] sources/.../file-a.md — new；一句说明
 
 ## Batches
 
@@ -77,5 +77,5 @@ llm-wiki-invest sources pending .llm-wiki-invest/dossier-runs/<run-id> --json
 - created pages
 - updated pages
 - skipped sources and reason
-- `llm-wiki-invest sources mark-ingested ...` 命令
+- source frontmatter 的 `ingested` / `wiki_pages` 更新
 - unresolved questions

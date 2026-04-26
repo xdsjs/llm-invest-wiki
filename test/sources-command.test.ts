@@ -1,9 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { execSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import matter from 'gray-matter';
 
 const CLI = join(import.meta.dirname, '..', 'dist', 'cli.js');
 let testDir: string;
@@ -136,7 +135,7 @@ published: 2026-02-02
     expect(payload.groups[0].sources[0].path).toBe('sources/10-q/2026/q1-10-q/00-10-q.md');
   });
 
-  it('should mark sources as ingested with wiki page references', () => {
+  it('should treat manually marked sources as clean', () => {
     const sourceDir = join(testDir, 'sources/earnings-release/2026/q1-results');
     const sourcePath = join(sourceDir, '00-release.md');
     mkdirSync(sourceDir, { recursive: true });
@@ -147,27 +146,29 @@ authority: company
 document_type: earnings-release
 disclosure_key: q1-results
 published: 2026-02-01
+ingested: 2026-04-26
+wiki_pages:
+  - wiki/events/q1-results.md
+  - wiki/financials.md
 ---
 
 # body
 `);
-
-    const output = execSync(
-      `node ${CLI} sources mark-ingested sources/earnings-release/2026/q1-results/00-release.md --pages wiki/events/q1-results.md,wiki/financials.md`,
-      { cwd: testDir, encoding: 'utf-8' }
-    );
-
-    expect(output).toContain('Marked ingested: 1');
-    const { data } = matter(readFileSync(sourcePath, 'utf-8'));
-    expect(data.ingested).toBeTruthy();
-    expect(data.ingest_hash).toBeTruthy();
-    expect(data.wiki_pages).toEqual(['wiki/events/q1-results.md', 'wiki/financials.md']);
 
     const pending = execSync(`node ${CLI} sources pending`, {
       cwd: testDir,
       encoding: 'utf-8',
     });
     expect(pending).toContain('No pending sources.');
-    expect(existsSync(join(testDir, 'dossier'))).toBe(false);
+
+    const all = execSync(`node ${CLI} sources pending --all --json`, {
+      cwd: testDir,
+      encoding: 'utf-8',
+    });
+    const payload = JSON.parse(all) as {
+      groups: Array<{ sources: Array<{ status: string; wikiPages: string[] }> }>;
+    };
+    expect(payload.groups[0].sources[0].status).toBe('clean');
+    expect(payload.groups[0].sources[0].wikiPages).toEqual(['wiki/events/q1-results.md', 'wiki/financials.md']);
   });
 });

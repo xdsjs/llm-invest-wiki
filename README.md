@@ -124,8 +124,7 @@ Skill 暴露四个操作，它们都以斜杠命令的形式被调用：
 | `llm-wiki-invest dossier apply <manifest> [--run-id <id>]` | 建立 dossier run 记录，并把 reviewed manifest 物化到 `sources/` |
 | `llm-wiki-invest dossier status` | 展示 dossier 材料数、披露数、authority/type 统计与 unresolved 数 |
 | `llm-wiki-invest dossier check` | 检查官方 sources 目录结构与 frontmatter 是否合规 |
-| `llm-wiki-invest sources pending [path] [--json]` | 按输入范围列出未 ingest 或已变化的来源；`path` 可为 `sources/` 文件/目录或 `.llm-wiki-invest/dossier-runs/<run-id>/` |
-| `llm-wiki-invest sources mark-ingested <paths...> --pages <pages>` | agent 写完 wiki 后，给来源写入 `ingested`、`ingest_hash`、`wiki_pages` |
+| `llm-wiki-invest sources pending [path] [--json]` | 按输入范围列出未 ingest 的来源；`path` 可为 `sources/` 文件/目录或 `.llm-wiki-invest/dossier-runs/<run-id>/` |
 | `llm-wiki-invest search <query>` | BM25 关键词搜索（如果配置了 DB9，也会结合向量搜索） |
 | `llm-wiki-invest graph [--json]` | 分析 wikilink 图：社区、枢纽页、孤儿页、待写页 |
 | `llm-wiki-invest status` | 展示 wiki 统计信息和健康摘要 |
