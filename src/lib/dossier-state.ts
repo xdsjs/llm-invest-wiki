@@ -19,6 +19,7 @@ interface DossierStateMaterialInput {
   accessionNo?: string;
   primaryDocument?: string;
   sourceChannel?: string;
+  materializer?: string;
 }
 
 export interface DossierStateRefreshResult {
@@ -117,6 +118,7 @@ function materialInputFromSource(
     accessionNo: existing.accessionNo ?? parsedSecIdentity.accessionNo,
     primaryDocument: existing.primaryDocument ?? parsedSecIdentity.primaryDocument,
     sourceChannel: stringField(frontmatter, 'source_channel') ?? existing.sourceChannel,
+    materializer: stringField(frontmatter, 'materializer') ?? existing.materializer,
   };
 }
 
@@ -197,6 +199,7 @@ export function mergeDossierMaterialState(
     accessionNo: material.accessionNo,
     primaryDocument: material.primaryDocument,
     sourceChannel: material.sourceChannel,
+    materializer: material.materializer,
     firstSeenAt: existing?.firstSeenAt ?? now,
     lastSeenAt: now,
   };

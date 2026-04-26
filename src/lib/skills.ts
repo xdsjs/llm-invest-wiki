@@ -31,14 +31,14 @@ export interface SkillEntry {
 export function listSkillEntries(skillsDir: string): SkillEntry[] {
   return readdirSync(skillsDir)
     .sort()
-    .flatMap(name => {
+    .flatMap((name): SkillEntry[] => {
       const path = join(skillsDir, name);
       const stat = statSync(path);
 
       if (stat.isFile() && name.endsWith('.md')) {
         return [{
           name: name.replace(/\.md$/, ''),
-          type: 'file' as const,
+          type: 'file',
           sourcePath: path,
           mainPath: path,
         }];
@@ -49,7 +49,7 @@ export function listSkillEntries(skillsDir: string): SkillEntry[] {
         if (existsSync(mainPath)) {
           return [{
             name,
-            type: 'bundle' as const,
+            type: 'bundle',
             sourcePath: path,
             mainPath,
           }];

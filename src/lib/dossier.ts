@@ -53,6 +53,7 @@ export interface DossierMaterialState {
   accessionNo?: string;
   primaryDocument?: string;
   sourceChannel?: string;
+  materializer?: string;
   firstSeenAt?: string;
   lastSeenAt?: string;
 }
@@ -136,6 +137,7 @@ export function renderDossierMarkdown(input: {
   retrievedAt?: string;
   canonicalUrl?: string;
   sourceChannel?: string;
+  materializer?: string;
 }): string {
   const lines = [
     '---',
@@ -157,6 +159,9 @@ export function renderDossierMarkdown(input: {
   }
   if (input.sourceChannel) {
     lines.push(`source_channel: ${yamlQuote(input.sourceChannel)}`);
+  }
+  if (input.materializer) {
+    lines.push(`materializer: ${yamlQuote(input.materializer)}`);
   }
 
   lines.push('---', '', input.body.trim(), '');

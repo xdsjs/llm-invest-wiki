@@ -56,8 +56,11 @@ describe('applyManifest', () => {
     );
 
     expect(result.created).toEqual([out]);
+    expect(result.materialized).toEqual([{ path: out, materializer: 'markitdown' }]);
     expect(existsSync(out)).toBe(true);
-    expect(readFileSync(out, 'utf-8')).toContain("author: '[[apple.com]]'");
+    const source = readFileSync(out, 'utf-8');
+    expect(source).toContain("author: '[[apple.com]]'");
+    expect(source).toContain("materializer: 'markitdown'");
 
     const state = JSON.parse(readFileSync(join(testDir, '.llm-wiki-invest/dossier-state.json'), 'utf-8')) as {
       materials: Record<string, {
@@ -68,6 +71,7 @@ describe('applyManifest', () => {
         disclosureKey: string;
         published: string;
         canonicalUrl: string;
+        materializer: string;
         firstSeenAt: string;
         lastSeenAt: string;
       }>;
@@ -87,6 +91,7 @@ describe('applyManifest', () => {
       disclosureKey: '2026-02-01-q1-results',
       published: '2026-02-01',
       canonicalUrl: 'https://investor.apple.com/q1-release.md',
+      materializer: 'markitdown',
     });
     expect(state.materials[identityKey].contentHash).toMatch(/^[a-f0-9]{16}$/);
     expect(state.materials[identityKey].firstSeenAt).toBeTruthy();
@@ -133,12 +138,19 @@ describe('applyManifest', () => {
     const resultJson = JSON.parse(readFileSync(join(runDir, 'result.json'), 'utf-8')) as {
       runId: string;
       created: string[];
+      materialized: Array<{ path: string; materializer: string }>;
       skippedDuplicates: string[];
       unresolved: string[];
     };
     expect(resultJson.runId).toBe('2026-04-25-aapl');
     expect(resultJson.created).toEqual([
       'sources/earnings-release/2026/2026-02-01-q1-results/00-primary-q1-release.md',
+    ]);
+    expect(resultJson.materialized).toEqual([
+      {
+        path: 'sources/earnings-release/2026/2026-02-01-q1-results/00-primary-q1-release.md',
+        materializer: 'markitdown',
+      },
     ]);
     expect(resultJson.skippedDuplicates).toEqual([]);
     expect(resultJson.unresolved).toEqual([]);

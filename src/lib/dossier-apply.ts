@@ -9,6 +9,7 @@ import {
 } from './dossier.js';
 import type { DossierManifest, DossierMaterialInput } from './dossier.js';
 import { vaultPaths } from './config.js';
+import type { MaterializerName } from './dossier-materialize.js';
 import { materializeSource } from './dossier-materialize.js';
 import {
   loadDossierState,
@@ -19,6 +20,7 @@ import {
 
 export interface ApplyResult {
   created: string[];
+  materialized: Array<{ path: string; materializer: MaterializerName }>;
   skippedDuplicates: string[];
   unresolved: string[];
   runDir: string;
@@ -113,6 +115,10 @@ function renderRunResult(root: string, manifest: DossierManifest, result: ApplyR
     company: manifest.company,
     generatedAt: manifest.generatedAt,
     created: result.created.map(path => toVaultRelative(root, path)),
+    materialized: result.materialized.map(item => ({
+      path: toVaultRelative(root, item.path),
+      materializer: item.materializer,
+    })),
     skippedDuplicates: result.skippedDuplicates,
     unresolved: result.unresolved.map(path => toVaultRelative(root, path)),
   }, null, 2);
@@ -136,7 +142,7 @@ export async function applyManifest(
 
   const state = loadDossierState(paths.dossierState, manifest.company);
   const now = new Date().toISOString();
-  const result: ApplyResult = { created: [], skippedDuplicates: [], unresolved: [], runDir, runId };
+  const result: ApplyResult = { created: [], materialized: [], skippedDuplicates: [], unresolved: [], runDir, runId };
   const reservedSequences = new Set<string>();
 
   for (const material of manifest.materials) {
@@ -149,14 +155,15 @@ export async function applyManifest(
       }
       reservedSequences.add(seqKey);
 
-      const { body, retrievedAt } = await materializeSource(material);
+      const { body, retrievedAt, materializer } = await materializeSource(material);
+      const materialWithMaterializer = { ...material, materializer };
       const contentHash = hashBody(body);
       const existing = state.materials[identityKey];
 
       if (existing && existing.contentHash === contentHash) {
         state.materials[identityKey] = mergeDossierMaterialState(
           existing,
-          material,
+          materialWithMaterializer,
           existing.outputPath,
           contentHash,
           now
@@ -192,12 +199,14 @@ export async function applyManifest(
         retrievedAt,
         canonicalUrl: material.canonicalUrl,
         sourceChannel: material.sourceChannel,
+        materializer,
       });
 
       writeFileSync(outPath, markdown);
-      state.materials[identityKey] = mergeDossierMaterialState(existing, material, outPath, contentHash, now);
+      state.materials[identityKey] = mergeDossierMaterialState(existing, materialWithMaterializer, outPath, contentHash, now);
       updateDossierCheckpoints(state, material, identityKey, now);
       result.created.push(outPath);
+      result.materialized.push({ path: outPath, materializer });
     } catch (error) {
       const unresolvedPath = join(
         paths.dossierUnresolved,

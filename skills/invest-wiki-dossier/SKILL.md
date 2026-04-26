@@ -16,7 +16,7 @@ description: Use when maintaining official file-level sources for one listed com
 - `dossier init` 初始化状态。
 - `dossier refresh-state` 从已追踪 source 回填旧 state 的材料元数据和 checkpoints。
 - `dossier fetch-sec-submissions` 抓取 SEC submissions 辅助信息。
-- `dossier apply` 下载、markitdown 转换、落盘、去重、写 run record。
+- `dossier apply` 下载、自动选择 Markdown 物化策略、落盘、去重、写 run record。
 - `dossier status` / `dossier check` 做结果检查。
 
 ## Workflow

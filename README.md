@@ -72,7 +72,7 @@ my-wiki/
     ├── config.toml        # Vault 配置
     ├── sync-state.json    # 增量同步状态
     ├── ingest-plans/      # agent 生成的 ingest 计划与执行记录
-    ├── dossier-runs/      # dossier apply 的 manifest、report 与本次 unresolved
+    ├── dossier-runs/      # dossier apply 的 manifest、result 与本次 unresolved
     ├── dossier-state.json # dossier 身份与材料状态
     └── dossier-unresolved/ # 无法稳定处理的 dossier 材料
 ```

@@ -42,7 +42,9 @@
   ],
   "dependencies": {
     "commander": "^13.0.0",
+    "defuddle": "^0.18.1",
     "gray-matter": "^4.0.3",
+    "linkedom": "^0.18.12",
     "pdf-parse": "^1.1.4",
     "toml": "^3.0.0"
   },
@@ -51,6 +53,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "@types/pdf-parse": "^1.1.5",
     "@types/pg": "^8.20.0",
     "tsup": "^8.0.0",
     "typescript": "^5.7.0",

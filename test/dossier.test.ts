@@ -61,12 +61,14 @@ describe('dossier helpers', () => {
       authority: 'company',
       documentType: 'earnings-release',
       disclosureKey: '2026-02-01-q1-results',
+      materializer: 'markitdown',
       body: '# Apple Q1 Release',
     });
 
     expect(md).toContain("title: 'Apple Q1 Release'");
     expect(md).toContain("author: '[[apple.com]]'");
     expect(md).toContain("document_type: 'earnings-release'");
+    expect(md).toContain("materializer: 'markitdown'");
     expect(md).toContain('# Apple Q1 Release');
   });
 
