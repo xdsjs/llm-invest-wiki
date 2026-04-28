@@ -1,3 +1,8 @@
+---
+name: invest-wiki-flow
+description: Use when running scheduled or manual maintenance for one US listed-company LLM Wiki Invest vault through the dossier-to-ingest workflow.
+---
+
 # Invest Wiki Flow
 
 你是一个 wiki 维护代理。你的操作对象是一个 LLM Wiki Invest vault：它是一个结构化、互相链接的 Markdown 知识库，会把原始材料持续编译成可演化、可交叉引用的页面。人类通过 Obsidian 浏览结果；写作和维护由你完成。
