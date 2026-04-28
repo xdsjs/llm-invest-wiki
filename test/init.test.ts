@@ -20,6 +20,7 @@ describe('init command', () => {
   it('should create vault structure', () => {
     execSync(`node ${CLI} init`, { cwd: testDir });
     expect(existsSync(join(testDir, 'wiki'))).toBe(true);
+    expect(existsSync(join(testDir, 'wiki', 'right'))).toBe(true);
     expect(existsSync(join(testDir, 'dossier'))).toBe(false);
     expect(existsSync(join(testDir, 'sources'))).toBe(true);
     expect(existsSync(join(testDir, 'wiki-purpose.md'))).toBe(true);
@@ -54,6 +55,12 @@ describe('init command', () => {
     const agentsLint = join(testDir, '.agents/skills/invest-wiki-lint');
     const claudeResearch = join(testDir, '.claude/skills/invest-wiki-research');
     const agentsResearch = join(testDir, '.agents/skills/invest-wiki-research');
+    const claudeRightBusiness = join(testDir, '.claude/skills/invest-wiki-right-business');
+    const agentsRightBusiness = join(testDir, '.agents/skills/invest-wiki-right-business');
+    const claudeRightPeople = join(testDir, '.claude/skills/invest-wiki-right-people');
+    const agentsRightPeople = join(testDir, '.agents/skills/invest-wiki-right-people');
+    const claudeRightPrice = join(testDir, '.claude/skills/invest-wiki-right-price');
+    const agentsRightPrice = join(testDir, '.agents/skills/invest-wiki-right-price');
     expect(existsSync(join(claudeSkill, 'SKILL.md'))).toBe(true);
     expect(existsSync(join(claudeSkill, 'template/listed-company-ingest-plan.md'))).toBe(true);
     expect(existsSync(join(agentsSkill, 'SKILL.md'))).toBe(true);
@@ -78,6 +85,12 @@ describe('init command', () => {
     expect(existsSync(join(agentsLint, 'SKILL.md'))).toBe(true);
     expect(existsSync(join(claudeResearch, 'SKILL.md'))).toBe(true);
     expect(existsSync(join(agentsResearch, 'SKILL.md'))).toBe(true);
+    expect(existsSync(join(claudeRightBusiness, 'SKILL.md'))).toBe(true);
+    expect(existsSync(join(agentsRightBusiness, 'SKILL.md'))).toBe(true);
+    expect(existsSync(join(claudeRightPeople, 'SKILL.md'))).toBe(true);
+    expect(existsSync(join(agentsRightPeople, 'SKILL.md'))).toBe(true);
+    expect(existsSync(join(claudeRightPrice, 'SKILL.md'))).toBe(true);
+    expect(existsSync(join(agentsRightPrice, 'SKILL.md'))).toBe(true);
     // Content must match (not just empty file)
     const claudeContent = readFileSync(join(claudeSkill, 'SKILL.md'), 'utf-8');
     const agentsContent = readFileSync(join(agentsSkill, 'SKILL.md'), 'utf-8');

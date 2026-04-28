@@ -24,6 +24,9 @@ describe('skills library', () => {
     expect(skills).toContain('invest-wiki-query');
     expect(skills).toContain('invest-wiki-lint');
     expect(skills).toContain('invest-wiki-research');
+    expect(skills).toContain('invest-wiki-right-business');
+    expect(skills).toContain('invest-wiki-right-people');
+    expect(skills).toContain('invest-wiki-right-price');
   });
 
   it('should resolve bundled skills to their SKILL.md entry point', () => {
@@ -46,6 +49,9 @@ describe('skills library', () => {
     expect(installed).toContain('invest-wiki-query');
     expect(installed).toContain('invest-wiki-lint');
     expect(installed).toContain('invest-wiki-research');
+    expect(installed).toContain('invest-wiki-right-business');
+    expect(installed).toContain('invest-wiki-right-people');
+    expect(installed).toContain('invest-wiki-right-price');
     expect(installed).toContain('invest-wiki-flow');
     expect(existsSync(join(testDir, 'llm-wiki-invest.md'))).toBe(false);
     expect(existsSync(join(testDir, 'llm-wiki-invest'))).toBe(false);
@@ -59,6 +65,9 @@ describe('skills library', () => {
     expect(existsSync(join(testDir, 'invest-wiki-query', 'SKILL.md'))).toBe(true);
     expect(existsSync(join(testDir, 'invest-wiki-lint', 'SKILL.md'))).toBe(true);
     expect(existsSync(join(testDir, 'invest-wiki-research', 'SKILL.md'))).toBe(true);
+    expect(existsSync(join(testDir, 'invest-wiki-right-business', 'SKILL.md'))).toBe(true);
+    expect(existsSync(join(testDir, 'invest-wiki-right-people', 'SKILL.md'))).toBe(true);
+    expect(existsSync(join(testDir, 'invest-wiki-right-price', 'SKILL.md'))).toBe(true);
   });
 
   it('should not overwrite an existing bundled skill when overwrite is false', () => {

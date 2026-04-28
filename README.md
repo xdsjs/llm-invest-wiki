@@ -57,6 +57,7 @@ my-wiki/
 ├── wiki-schema.md         # 页面类型、命名规则、引用和 frontmatter 规则
 ├── wiki-log.md            # 追加式操作日志
 ├── wiki/                  # 由 AI 维护的 wiki 页面（兼容 Obsidian）
+│   └── right/             # Right Business / People / Price 判断层
 ├── sources/               # 唯一长期事实层，wiki 只引用这里的来源
 │   ├── {document_type}/   # 官方建档材料，如 10-k/、earnings-release/
 │   └── research/          # 非官方研究来源或其他明确 source category
@@ -97,15 +98,15 @@ LLM Wiki Invest 使用两层文件结构，让任意 AI agent 在无需手工配
 
 **2. Skill 文件：`.claude/skills/` 和 `.agents/skills/`**
 
-这是完整的 agent 操作手册，只有在 agent 真正调用 wiki 命令时才会按需加载。`invest-wiki-flow/SKILL.md` 是每日 dossier → ingest 维护 workflow，`invest-wiki-ingest/SKILL.md` 承载完整 `/ingest` 流程，其他投资领域专门流程也以 bundle skill 形式安装。同一组 skill 会安装到两个平台目录下，因此同一个 vault 可以同时被 Claude Code 和 Codex 使用，而无需额外适配。
+这是完整的 agent 操作手册，只有在 agent 真正调用 wiki 命令时才会按需加载。`invest-wiki-flow/SKILL.md` 是每日 dossier → ingest → right review 维护 workflow，`invest-wiki-ingest/SKILL.md` 承载完整 `/ingest` 流程，`invest-wiki-right-business` / `invest-wiki-right-people` / `invest-wiki-right-price` 基于已有 wiki 更新投资判断层。同一组 skill 会安装到两个平台目录下，因此同一个 vault 可以同时被 Claude Code 和 Codex 使用，而无需额外适配。
 
 **升级。** `llm-wiki-invest init` 仍然是唯一的初始化命令，它会写入入口文件并安装 skill。升级 npm 包之后，运行 `llm-wiki-invest skill install` 即可刷新 skill 文件。你自己对 `CLAUDE.md` / `AGENTS.md` 的修改在重新安装后仍会保留。
 
-批量 ingest 时，agent 会在 `.llm-wiki-invest/ingest-plans/` 写入计划和执行记录。计划由 agent 消费，不是 CLI 输入。上市公司 wiki 的页面类型和页面骨架由 `wiki-schema.md` 定义；官方 sources 的目标页面由 agent 在 plan 阶段根据 source 实际内容选择，`document_type` 只作为阅读背景和优先级信号。
+批量 ingest 时，agent 会在 `.llm-wiki-invest/ingest-plans/` 写入计划和执行记录。计划由 agent 消费，不是 CLI 输入。上市公司 wiki 的页面类型和页面骨架由 `wiki-schema.md` 定义；官方 sources 的目标页面由 agent 在 plan 阶段根据 source 实际内容选择，`document_type` 只作为阅读背景和优先级信号。投资判断层固定遵守 `source -> wiki -> wiki/right`：right 页面读取 wiki 知识层，不直接从 source 跳写。
 
 ## 操作
 
-Skill 暴露四个操作，它们都以斜杠命令的形式被调用：
+Skill 暴露常用操作，它们通常以斜杠命令或专门 skill 形式被调用：
 
 | 操作 | 用法 | 作用 |
 |------|------|------|
@@ -113,6 +114,7 @@ Skill 暴露四个操作，它们都以斜杠命令的形式被调用：
 | **query** | `/query <question>` | 搜索 wiki → 综合回答 → 把有价值的新知识写回 wiki |
 | **lint** | `/lint` | 做健康检查：坏链接、孤儿页、矛盾、陈旧内容 → 自动修复安全问题 |
 | **research** | `/research <topic>` | 走出 wiki：搜索网络 → 保存资料 → ingest → 产出研究报告 |
+| **right review** | `invest-wiki-right-*` | 基于已有 wiki 更新 Right Business / People / Price 判断页 |
 
 ## CLI 命令
 

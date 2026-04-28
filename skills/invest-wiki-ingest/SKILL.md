@@ -5,7 +5,7 @@ description: Use when compiling one official source Markdown file under sources/
 
 # Invest Wiki Ingest
 
-- 把一个正式 source(`md`格式源文件) 编译进 `wiki/`。
+- 把一个正式 source(`md`格式源文件) 编译进 `wiki/` 知识层。
 - 输入边界：/ingest <path>；<path> 为源文件路径
 
 ##  前置规则
@@ -15,6 +15,8 @@ description: Use when compiling one official source Markdown file under sources/
 如果存在 `wiki-agent.md`，也要一并读取。它定义了这个 vault 专属的 agent 身份，以及 MUST / MAY / NEVER 的 ingest 标准，会覆盖 `CLAUDE.md` / `AGENTS.md` 中的默认规则。如果不存在，则回退到 bootstrap 文件里的默认规则。
 
 绝不要修改 `sources/` 下 source 正文。那里存放的是不可变的原始输入；唯一允许的 source 文件变更，是在 frontmatter 中补充或更新 `ingested` 和 `wiki_pages`。正文编辑应当发生在 `wiki/` 中。
+
+`/ingest` 不直接写 `wiki/right/*`。判断层由 `invest-wiki-right-business`、`invest-wiki-right-people`、`invest-wiki-right-price` 读取已有 wiki 后更新。
 
 每次执行完操作后，无论是 ingest、query、lint 还是 research，都要在 `wiki-log.md` 追加一条单行记录，并运行 `llm-wiki-invest sync`。不要因为改动小就跳过。日志是给人审计的，sync 则用来保持 embedding 和 DB9 状态同步。
 
@@ -41,7 +43,8 @@ description: Use when compiling one official source Markdown file under sources/
    - 需要新建哪些 wiki 页面
    - 需要把哪些新信息写入已有页面
    - 需要通过 `[[wikilinks]]` 增加哪些交叉引用
-   - 一个源材料可能会影响 5 到 15 个页面。
+   - 这份 source 是否足以触发后续 right review。
+   - 优先更新少量高信号知识页，不把 source 机械拆散到过多页面。
 3. 在 `wiki/` 中创建或更新 Markdown 文件，并带上符合 `wiki-schema.md` 的 frontmatter：
    ```yaml
    ---
@@ -59,6 +62,7 @@ description: Use when compiling one official source Markdown file under sources/
    - 每个页面聚焦一个主题。如果某个章节过大，就拆成独立页面。
    - 每个 source-derived 事实、数字、管理层表述、风险变化都要使用正文脚注，并在文末 `## Refs` 中列出来源。
    - 在页面底部添加 `## Refs`；需要时在其前面添加 `## Related`：`- [[page-name]] — 一句关系说明`。
+   - 如果 source 可能影响业务、人物或价格判断，只在相关知识页或事件页注明“可能触发 right review”，不要直接改写 `wiki/right/*`。
 
 ### step4: 执行收尾动作
 
@@ -85,8 +89,10 @@ description: Use when compiling one official source Markdown file under sources/
 - 当结构、命名或范围存在不确定性时，ingest 应当以协作方式进行；但在既有框架下的直接补充，可以直接落地。
 - 使用符合 `wiki-schema.md` 约定的、可读的 slug。
 - wiki frontmatter 不维护来源列表；所有来源必须通过正文脚注和 `## Refs` 追溯。
+- 维护 `source -> wiki -> wiki/right`：source 先进入知识层，判断层再基于知识层复核。
 
 
 ## 交付
 
 - 新增或更新的 `wiki` 页面路径。
+- 是否建议运行某个 right review skill，以及建议原因。

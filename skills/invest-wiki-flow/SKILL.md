@@ -11,6 +11,9 @@ description: Use when running scheduled or manual maintenance for one US listed-
 
 - invest-wiki-dossier
 - invest-wiki-ingest
+- invest-wiki-right-business
+- invest-wiki-right-people
+- invest-wiki-right-price
 
 ## 前置规则
 
@@ -19,6 +22,8 @@ description: Use when running scheduled or manual maintenance for one US listed-
 如果存在 `wiki-agent.md`，也要一并读取。它定义了这个 vault 专属的 agent 身份，以及 MUST / MAY / NEVER 的 ingest 标准，会覆盖 `CLAUDE.md` / `AGENTS.md` 中的默认规则。如果不存在，则回退到 bootstrap 文件里的默认规则。
 
 绝不要手工修改 `sources/` 下已有来源的正文内容。`sources/` 是唯一长期事实层；外部文件、dossier run 或下载缓存必须先物化为 `sources/` 下的 source，才能被 wiki 引用。已有来源唯一允许的更新是补充 `ingested` 和 `wiki_pages` frontmatter。正文编辑应当发生在 `wiki/` 中。
+
+维护顺序固定为 `sources -> wiki -> wiki/right`。`invest-wiki-ingest` 只维护知识层；right 系列 skill 才维护判断层。
 
 每次实际产生 sources、wiki、plan 或 run record 变更后，都要在 `wiki-log.md` 追加一条单行记录，并运行 `llm-wiki-invest sync`。如果本次增量维护没有任何变化，可以只输出 no-op 摘要，不强行写 wiki。
 
@@ -50,7 +55,17 @@ description: Use when running scheduled or manual maintenance for one US listed-
    - 步骤一：调用 Skill tool 执行 `invest-wiki-ingest`，传入要处理的源md文档<path>，注意一次只能处理一个md文档，等待完成。
    - 步骤二：重复步骤一直到全部源md文档处理完成。
 
-### step4: 汇总报告
+### step5: 判断层复核
+
+根据本轮 ingest 结果判断是否需要运行 right review：
+
+1. 如果业务结构、收入驱动、竞争位置、客户需求、单位经济学或关键风险有实质变化，运行 `invest-wiki-right-business`。
+2. 如果管理层、治理、激励、资本配置、股东对待或管理层可信度有实质变化，运行 `invest-wiki-right-people`。
+3. 如果价格、估值假设、市场预期、盈利能力、现金流、风险回报或关键敏感性有实质变化，运行 `invest-wiki-right-price`。
+4. right review 必须读取已有 `wiki/` 页面和事件页，不直接从 `sources/` 跳写判断。
+5. 如果本轮只是补充低信号事实，记录“不触发 right review”的原因。
+
+### step6: 汇总报告
 
 所有 `ingest` 处理完成后，汇总输出：
 

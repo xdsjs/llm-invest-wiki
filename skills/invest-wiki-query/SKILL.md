@@ -33,7 +33,8 @@ description: Use when answering questions from an llm-wiki-invest vault or writi
    - 区分有明确来源支持的结论和推断
 6. 如果 wiki 里没有足够信息回答，明确说明，并建议应 ingest 或 research 哪些来源。
 7. 如果这次回答产出了有价值的新知识，则写回 wiki：
-   - 创建综合页面，或更新已有综合页
+   - 优先更新已有知识页或 `wiki/right/*` 判断页
+   - 只有当内容不属于既有页面体系时，才创建综合页面
    - 添加指向源页面的 `[[wikilinks]]`
    - 对贡献综合结论的 wiki 页面或 source 使用正文脚注
    - 在文件末尾 `## Refs` 统一列出来源
@@ -48,6 +49,7 @@ description: Use when answering questions from an llm-wiki-invest vault or writi
 - 这次答案把 3 个以上页面连接成此前未记录的关系。
 - 这次答案解决了一个矛盾。
 - 这次答案高置信度补上了知识空白。
+- 这次答案改变了 Right Business、Right People 或 Right Price 的支持证据、反证或可证伪条件。
 - 用户明确要求保存答案。
 
 不适合写回：
@@ -55,8 +57,15 @@ description: Use when answering questions from an llm-wiki-invest vault or writi
 - 只是从单个页面查出的简单事实。
 - 回答严重依赖 wiki 之外的信息。
 - 综合结果带有明显猜测或低置信度。
+- 需要直接从外部 source 形成判断，但相关 source 还没有先 ingest 到 wiki。
+
+### 判断层写回
+
+如果答案要写回 `wiki/right/*`，必须遵守 `wiki-schema.md` 的判断层结构：Current Judgment、Evidence For、Evidence Against、What Changed Recently、What Would Change My Mind、Refs。判断层引用应优先指向 `wiki/` 页面，而不是直接跳到 `sources/`。
 
 ### 综合页面格式
+
+综合页面仍位于 `wiki/`，只用于无法归入既有知识页或 `wiki/right/*` 的跨页主题：
 
 ```yaml
 ---

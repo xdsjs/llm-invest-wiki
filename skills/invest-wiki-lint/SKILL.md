@@ -32,6 +32,8 @@ description: Use when checking or repairing the structure, links, sources, front
    - 陈旧内容：页面 `updated` 日期早于其 `## Refs` 引用来源文件的修改时间。
    - 无来源结论：页面存在 source-derived 事实，但缺少正文脚注或末尾 `## Refs`。
    - 过浅页面：除去 frontmatter 后正文不足 3 句，应扩充或合并。
+   - 判断层缺口：`wiki/right/right-business.md`、`wiki/right/right-people.md`、`wiki/right/right-price.md` 缺少支持证据、反证或 `What Would Change My Mind`。
+   - 判断层越界：`wiki/right/*` 直接引用大量 `sources/`，但没有通过 `wiki/` 知识页承接。
 6. 检查来源问题：
    - 未 ingest 来源：`llm-wiki-invest sources pending [path]` 中状态为 `new` 的文件。
 7. 输出结构化报告。

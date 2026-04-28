@@ -4,6 +4,8 @@ export const CLAUDE_MD_TEMPLATE = `# LLM Wiki Invest
 \`invest-wiki-flow\` skill。主 skill 位于 \`.claude/skills/invest-wiki-flow/SKILL.md\`，
 定位是每日 dossier → ingest workflow：先调用 \`invest-wiki-dossier\`
 维护官方 sources，再调用 \`invest-wiki-ingest\` 摄取新增或变化的 source。
+如果新增知识改变投资判断，再调用 \`invest-wiki-right-business\`、
+\`invest-wiki-right-people\` 或 \`invest-wiki-right-price\` 更新判断层。
 Claude Code 会按需加载这些 skill。
 
 ## Agent 身份
@@ -41,6 +43,7 @@ Claude Code 会按需加载这些 skill。
 ## 结构
 
 - \`wiki/\`：由 AI 维护的 wiki 页面（兼容 Obsidian）
+- \`wiki/right/\`：基于 wiki 知识层生成的投资判断页
 - \`wiki-agent.md\`：agent 行为规则（可选，vault 专属）
 - \`sources/\`：原始来源材料和官方建档材料（正文不可修改；ingest 状态写入 frontmatter）
 - \`wiki-log.md\`：追加式操作日志
@@ -66,4 +69,5 @@ Claude Code 会按需加载这些 skill。
 3. 页面之间的交叉引用统一使用 \`[[wikilinks]]\`
 4. 每次操作结束后，都要在 \`wiki-log.md\` 追加记录，并运行 \`llm-wiki-invest sync\`
 5. 当你收到信息时，要按自动 ingest 标准判断，不要等显式命令
+6. 判断层遵守 \`source -> wiki -> wiki/right\`，不要绕过 wiki 直接从 source 写 \`wiki/right/*\`
 `;

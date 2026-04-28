@@ -51,6 +51,7 @@ export function loadConfig(vaultRoot: string): WikiConfig {
 export function vaultPaths(root: string) {
   return {
     wiki: join(root, 'wiki'),
+    wikiRight: join(root, 'wiki', 'right'),
     sources: join(root, 'sources'),
     dossierSources: join(root, 'sources'),
     purpose: join(root, 'wiki-purpose.md'),

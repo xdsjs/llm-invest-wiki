@@ -24,6 +24,7 @@ describe('config path resolution', () => {
 
     const paths = vaultPaths(testDir);
     expect(paths.config).toBe(join(testDir, '.llm-wiki-invest/config.toml'));
+    expect(paths.wikiRight).toBe(join(testDir, 'wiki', 'right'));
     expect(paths.dossierSources).toBe(join(testDir, 'sources'));
     expect(paths.sources).toBe(join(testDir, 'sources'));
     expect(paths.syncState).toBe(join(testDir, '.llm-wiki-invest/sync-state.json'));
