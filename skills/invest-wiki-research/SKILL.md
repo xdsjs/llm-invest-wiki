@@ -68,5 +68,5 @@ description: Use when an llm-wiki-invest vault lacks enough internal knowledge a
 
 - 不要依赖单一来源，关键结论至少对照 2 个以上来源。
 - 记录来源发布日期；变化快的领域中，超过 2 年的信息要明确标记。
-- 每个 source-derived 结论都必须能通过正文脚注和末尾 `## Refs` 回溯到来源。
+- 每个 source-derived 结论都必须能通过正文脚注和末尾 `## 来源` 回溯到来源。
 - 遇到有价值但超出范围的支线，只记录为后续研究建议，不要当场扩展。

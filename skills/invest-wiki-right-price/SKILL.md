@@ -40,21 +40,21 @@ description: Use when updating the human-facing Right Price judgment page from e
 ```md
 # Right Price
 
-## Current Judgment
+## 当前判断
 
-## Market-Implied Expectations
+## 市场隐含预期
 
-## Base / Bull / Bear Cases
+## 基准 / 乐观 / 悲观情景
 
-## Evidence For
+## 支持证据
 
-## Evidence Against
+## 反证与疑点
 
-## What Changed Recently
+## 最近变化
 
-## What Would Change My Mind
+## 改变判断的条件
 
-## Refs
+## 来源
 ```
 
-Refs 优先引用 `wiki/` 页面；必要时可以引用这些 wiki 页面背后的 `sources/` 脚注。
+`## 来源` 优先引用 `wiki/` 页面；必要时可以引用这些 wiki 页面背后的 `sources/` 脚注。

@@ -45,6 +45,7 @@ description: Use when compiling one official source Markdown file under sources/
    - 需要通过 `[[wikilinks]]` 增加哪些交叉引用
    - 这份 source 是否足以触发后续 right review。
    - 优先更新少量高信号知识页，不把 source 机械拆散到过多页面。
+   - 每个目标页面要新增或更新哪些 `证据台账`、`变化记录` / `相比上期变化`、`判断层信号` 条目。
 3. 在 `wiki/` 中创建或更新 Markdown 文件，并带上符合 `wiki-schema.md` 的 frontmatter：
    ```yaml
    ---
@@ -60,8 +61,10 @@ description: Use when compiling one official source Markdown file under sources/
    - 更新已有页面时，要**合并**新信息。除非被更权威或更新的来源推翻，否则不要覆盖旧内容。如果存在冲突，要同时注明两方来源。
    - 要积极使用 `[[wikilinks]]`。任何已经有页面或应该有页面的实体，都应该被链接。
    - 每个页面聚焦一个主题。如果某个章节过大，就拆成独立页面。
-   - 每个 source-derived 事实、数字、管理层表述、风险变化都要使用正文脚注，并在文末 `## Refs` 中列出来源。
-   - 在页面底部添加 `## Refs`；需要时在其前面添加 `## Related`：`- [[page-name]] — 一句关系说明`。
+   - 每个 source-derived 事实、数字、管理层表述、风险变化都要使用正文脚注，并在文末 `## 来源` 中列出来源。
+   - 普通 wiki 页必须把关键事实落进 `证据台账`，把跨期变化落进 `变化记录` 或事件页 `相比上期变化`。
+   - `判断层信号` 只写可供判断层消费的信号，不写最终投资结论。
+   - 在页面底部添加 `## 来源`；需要时在其前面添加 `## 相关页面`：`- [[page-name]] — 一句关系说明`。
    - 如果 source 可能影响业务、人物或价格判断，只在相关知识页或事件页注明“可能触发 right review”，不要直接改写 `wiki/right/*`。
 
 ### step4: 执行收尾动作
@@ -86,13 +89,15 @@ description: Use when compiling one official source Markdown file under sources/
 - 每个页面都应当聚焦单一主题。
 - 用清晰、简洁的文字写作。要概括，不要照抄。
 - 始终为相关页面补充交叉引用。
+- 普通 wiki 的核心质量标准是 judgment-ready evidence：事实有出处、变化有比较、signals 能被 right review 读取。
 - 当结构、命名或范围存在不确定性时，ingest 应当以协作方式进行；但在既有框架下的直接补充，可以直接落地。
 - 使用符合 `wiki-schema.md` 约定的、可读的 slug。
-- wiki frontmatter 不维护来源列表；所有来源必须通过正文脚注和 `## Refs` 追溯。
+- wiki frontmatter 不维护来源列表；所有来源必须通过正文脚注和 `## 来源` 追溯。
 - 维护 `source -> wiki -> wiki/right`：source 先进入知识层，判断层再基于知识层复核。
 
 
 ## 交付
 
 - 新增或更新的 `wiki` 页面路径。
+- 关键新增 evidence / delta / signals 摘要。
 - 是否建议运行某个 right review skill，以及建议原因。

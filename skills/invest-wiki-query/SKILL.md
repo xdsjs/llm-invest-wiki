@@ -37,7 +37,7 @@ description: Use when answering questions from an llm-wiki-invest vault or writi
    - 只有当内容不属于既有页面体系时，才创建综合页面
    - 添加指向源页面的 `[[wikilinks]]`
    - 对贡献综合结论的 wiki 页面或 source 使用正文脚注
-   - 在文件末尾 `## Refs` 统一列出来源
+   - 在文件末尾 `## 来源` 统一列出来源
    - 更新相关页面中的交叉引用
    - 向 `wiki-log.md` 追加 query 记录
    - 运行 `llm-wiki-invest sync`
@@ -61,7 +61,7 @@ description: Use when answering questions from an llm-wiki-invest vault or writi
 
 ### 判断层写回
 
-如果答案要写回 `wiki/right/*`，必须遵守 `wiki-schema.md` 的判断层结构：Current Judgment、Evidence For、Evidence Against、What Changed Recently、What Would Change My Mind、Refs。判断层引用应优先指向 `wiki/` 页面，而不是直接跳到 `sources/`。
+如果答案要写回 `wiki/right/*`，必须遵守 `wiki-schema.md` 的判断层结构：`当前判断`、`支持证据`、`反证与疑点`、`最近变化`、`改变判断的条件`、`来源`。判断层引用应优先指向 `wiki/` 页面，而不是直接跳到 `sources/`。
 
 ### 综合页面格式
 
@@ -78,4 +78,4 @@ updated: YYYY-MM-DD
 ---
 ```
 
-来源追溯放在正文脚注和末尾 `## Refs`，不要放进 frontmatter。
+来源追溯放在正文脚注和末尾 `## 来源`，不要放进 frontmatter。

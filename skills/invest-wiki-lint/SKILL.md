@@ -29,10 +29,12 @@ description: Use when checking or repairing the structure, links, sources, front
    - 主题重复：多个页面覆盖同一个实体或概念。
 5. 检查内容问题：
    - 矛盾：多个页面对同一主题给出冲突说法。
-   - 陈旧内容：页面 `updated` 日期早于其 `## Refs` 引用来源文件的修改时间。
-   - 无来源结论：页面存在 source-derived 事实，但缺少正文脚注或末尾 `## Refs`。
+   - 陈旧内容：页面 `updated` 日期早于其 `## 来源` 引用来源文件的修改时间。
+   - 无来源结论：页面存在 source-derived 事实，但缺少正文脚注或末尾 `## 来源`。
    - 过浅页面：除去 frontmatter 后正文不足 3 句，应扩充或合并。
-   - 判断层缺口：`wiki/right/right-business.md`、`wiki/right/right-people.md`、`wiki/right/right-price.md` 缺少支持证据、反证或 `What Would Change My Mind`。
+   - 证据结构缺口：普通 `wiki/` 页面缺少 `证据台账`、`变化记录` / `相比上期变化` 或 `判断层信号`。
+   - 信号越界：普通 `wiki/` 的 `判断层信号` 直接写成投资结论，而不是证据信号。
+   - 判断层缺口：`wiki/right/right-business.md`、`wiki/right/right-people.md`、`wiki/right/right-price.md` 缺少支持证据、反证或 `改变判断的条件`。
    - 判断层越界：`wiki/right/*` 直接引用大量 `sources/`，但没有通过 `wiki/` 知识页承接。
 6. 检查来源问题：
    - 未 ingest 来源：`llm-wiki-invest sources pending [path]` 中状态为 `new` 的文件。
@@ -57,7 +59,7 @@ description: Use when checking or repairing the structure, links, sources, front
 ### 警告
 - **孤儿页**：[[page-d]] — 没有入链
 - **陈旧**：[[page-e]] — 自 YYYY-MM-DD 起未更新
-- **无来源**：[[page-f]] — 缺少正文脚注或 `## Refs`
+- **无来源**：[[page-f]] — 缺少正文脚注或 `## 来源`
 
 ### 提示
 - **过浅页面**：[[page-g]] — 只有 2 句，建议扩写

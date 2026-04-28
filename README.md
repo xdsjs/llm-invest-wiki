@@ -184,7 +184,7 @@ url = "your-db9-connection-string"
 
 - YAML frontmatter
 - `[[wikilink]]` 交叉引用
-- 正文脚注和末尾 `## Refs` 来源引用
+- 正文脚注和末尾 `## 来源` 来源引用
 - 可直接在 Obsidian 中打开、浏览、看图谱和编辑
 
 其中：

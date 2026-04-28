@@ -37,6 +37,8 @@ llm-wiki-invest sources pending .llm-wiki-invest/dossier-runs/<run-id> --json
 - 每个 planned wiki change 都要说明来源依据和写入理由。
 - 不为没有稳定事实增量的 source 创建页面。
 - 不把 source 摘要机械写成 wiki；wiki 只吸收对长期理解有用的事实、状态变化和可追溯判断。
+- 每个 planned wiki change 都要标出要写入的 `证据台账`、`变化记录` / `相比上期变化`、`判断层信号`。
+- `判断层信号` 只描述对 Right Business / Right People / Right Price 的潜在影响，不写最终投资判断。
 
 ## 输出格式
 
@@ -54,11 +56,12 @@ llm-wiki-invest sources pending .llm-wiki-invest/dossier-runs/<run-id> --json
 - sources/.../file-a.md
 
 #### Planned Wiki Changes
-- create/update `wiki/<page>.md` — 为什么这个 source 会影响该页面
+- create/update `wiki/<page>.md` — 为什么这个 source 会影响该页面；计划新增哪些 evidence / delta / signals
 
 #### Rationale
 - 为什么这些 sources 应该一起处理
 - 主要引用哪些事实
+- 哪些事实是稳定证据，哪些只是待验证信号
 - 是否存在冲突、缺口或需要人工判断的问题
 
 #### Execution Result
@@ -78,4 +81,5 @@ llm-wiki-invest sources pending .llm-wiki-invest/dossier-runs/<run-id> --json
 - updated pages
 - skipped sources and reason
 - source frontmatter 的 `ingested` / `wiki_pages` 更新
+- 写入的 evidence / delta / signals 摘要
 - unresolved questions
