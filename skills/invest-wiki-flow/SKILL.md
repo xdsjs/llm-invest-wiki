@@ -40,7 +40,7 @@ description: Use when running scheduled or manual maintenance for one US listed-
 
 ### step2: 建档（dossier），维护source
 
-1. 调用 Skill tool 执行 `invest-wiki-dossier`，传入公司身份。默认执行增量维护：只发现最近新增或变化的官方文件级材料，不做全量重建。
+1. 调用 Skill tool 执行 `invest-wiki-dossier`，传入公司身份。
 2. 等待 dossier 完成后：
    - 如果返回 no-op，说明本次没有新增 source，停止本轮 flow。
    - 如果调用了 `dossier apply`，获取本次 run 的 `result.json`。

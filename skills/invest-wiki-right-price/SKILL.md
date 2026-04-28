@@ -13,15 +13,41 @@ description: Use when updating the human-facing Right Price judgment page from e
 - 如果关键来源还没有 ingest，先建议运行 `invest-wiki-ingest`，不要补猜。
 - `right-price` 只回答价格、估值、市场预期和赔率，不重复写业务质量或管理层托付判断。
 - 判断必须同时保留支持证据、反证、关键假设和可证伪条件。
+- 当价格、股本、市值等市场数据不足以完成判断时，可以使用 yfinance 查询当前市场输入；查询结果必须标注查询时间、ticker、字段口径和局限性。
+- yfinance 查询结果只作为 `right-price` 的估值输入说明；默认不创建 source，也不写普通 wiki 页面。
 
 ## Workflow
 
 1. 读取 `wiki-purpose.md`、`wiki-schema.md` 和 `wiki-agent.md`（如果存在）。
 2. 读取相关知识页，至少包括 `wiki/financials.md`、`wiki/business-overview.md`、`wiki/capital-allocation.md`、相关 `wiki/events/*.md` 和 `wiki/open-questions.md`。
-3. 必要时让用户提供当前价格或估值输入；如果没有价格数据，明确标注价格判断不可完成。
-4. 只在已有 wiki 证据足够时更新 `wiki/right/right-price.md`。
+3. 如果缺少当前价格、市值、股本口径、企业价值或市场预期输入，优先使用 yfinance 查询；如果 yfinance 不可用或字段缺失，再向用户请求输入，并明确标注 right-price 暂不能完整完成。
+4. 只在已有 wiki 证据和必要市场输入足够时更新 `wiki/right/right-price.md`。
 5. 如果页面不存在，按 `wiki-schema.md` 的判断层结构创建。
 6. 向 `wiki-log.md` 追加记录，并运行 `llm-wiki-invest sync`。
+
+## yfinance 查询
+
+当价格或估值输入不足时，可以用 yfinance 查询当前市场数据。示例：
+
+```bash
+python - <<'PY'
+import yfinance as yf
+ticker = "AAPL"
+t = yf.Ticker(ticker)
+print(t.fast_info)
+print(t.info)
+PY
+```
+
+优先读取这些字段：`lastPrice` / `regularMarketPrice`、`marketCap`、`sharesOutstanding`、`enterpriseValue`、`totalCash`、`totalDebt`、`trailingPE`、`forwardPE`、`forwardEps`、`targetMeanPrice`、`recommendationMean`、`currency`。不同 ticker 的字段可能缺失或口径不同，不要伪造。
+
+在 `wiki/right/right-price.md` 中必须写清：
+
+- yfinance 查询时间。
+- 查询 ticker 和交易货币。
+- 使用了哪些字段，以及字段缺失时采用了什么替代口径。
+- 这些市场数据只是估值输入，不是官方披露事实。
+- 如果 yfinance 不可用或关键字段为空，不要猜测；向用户请求输入或把缺口写入 `反证与疑点` / `改变判断的条件`。
 
 ## 高质量问题
 

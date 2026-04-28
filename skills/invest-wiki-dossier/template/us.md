@@ -34,14 +34,21 @@ HTML 页面只有同时满足以下条件才可直接落盘：页面本身是正
 llm-wiki-invest dossier fetch-sec-submissions --cik 0000320193
 ```
 
-增量维护或快速筛选时使用 `--recent`，forms 按本模板覆盖矩阵选择。
+首次建档禁止只用 `--recent` 做覆盖判断；必须先读取 full submissions JSON，或用其他官方入口补足足够历史。增量维护或快速筛选时使用 `--recent`，forms 按本模板覆盖矩阵选择。
 
 ## 建档覆盖原则
 
+- 首次建档是 baseline/full build，不是最近披露 quick pass。不得擅自把范围收窄成“核心 6 个 source”或只覆盖最近一个季度。
 - 从最新材料向历史回看，先满足覆盖数量，再补关键历史事件。
 - 覆盖矩阵是最低基线；公司历史短于基线时，记录已公开的全部历史。
 - 成熟大型公司不追求全量历史归档；近期上市、重组、分拆、并购驱动或周期性公司，可按条件覆盖延长回看。
 - 官方材料缺失、URL 失效、日期无法确认或材料身份不稳定时，进入 unresolved，不用第三方材料补洞。
+- 首次建档必须产出 coverage note，逐项说明核心覆盖矩阵每一行的状态：
+  - `included`：本次 manifest 会新增。
+  - `existing`：vault 中已存在且通过材料身份确认。
+  - `not-applicable`：公司历史短于基线、文件类型不适用，或官方从未发布。
+  - `unresolved`：应覆盖但官方链接、日期、primary document 或材料身份无法稳定确认。
+- coverage note 是人工可读的范围说明，不是 CLI 数量门禁。矩阵项目少于默认回看范围时，只要能说明公司历史短、官方未发布、文件类型不适用或材料仍 unresolved，就可以完成首次建档。
 
 ## 核心覆盖矩阵
 
