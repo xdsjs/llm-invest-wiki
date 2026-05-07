@@ -66,7 +66,7 @@ DossierX 负责回答：
 - `manifest.schemaVersion`
 - `source_inventory.schemaVersion`
 - `quality_report.schemaVersion`
-- `bundle.schemaVersion`，如果实现 bundle 指针文件
+- `bundle.schemaVersion`
 
 版本号用于 DossierX 做兼容判断。v0 使用字符串版本，例如 `"coverage-contract/v0"`。
 
@@ -314,7 +314,36 @@ DossierX 当前任务状态集合为 `queued | claimed | running | succeeded | f
 - `task.result.coverageState = "incomplete"`：coverage gate 未通过，任务可展示为已完成的 incomplete dossier，但必须阻断商业报告生成。
 - `task.status = failed`：表示 run 未能产出可消费 `bundle.json`，DossierX 无法读取 coverage contract。
 
-后续可以在 company 层增加派生字段，例如 `company.dossierCoverageState`，但这不是 v0 必需项。
+### DossierX 结果持久化要求
+
+DossierX 当前 task row 没有持久化 `result` 字段，`CompleteTaskRequest.result` 也只被用于更新 `manifestPath` 等少数字段。Coverage Contract v0 要求 DossierX 在实现消费链路时增加一个稳定结果持久化落点，否则 `coverageState`、`bundlePath`、`commercialReportAllowed` 和 `blockingReasons[]` 会在完成任务后丢失。
+
+推荐实现：
+
+- 给 tasks 表和内存存储的 `TaskRow` 增加 `result` JSON 字段，例如 `tasks.result jsonb` 或 `task_result jsonb`。
+- `CompleteTaskRequest.result` 增加 coverage contract 结果字段。
+- `completeTask` 将完整 result payload 写入 task row。
+
+最低持久化字段：
+
+```json
+{
+  "bundlePath": ".llm-wiki-invest/dossier-runs/2026-05-07T02-00-00Z-AAPL/bundle.json",
+  "coverageState": "incomplete",
+  "commercialReportAllowed": false,
+  "blockingReasons": [
+    {
+      "code": "missing_required_source",
+      "message": "Required source is missing",
+      "expectationId": "sec.latest-10-k"
+    }
+  ]
+}
+```
+
+如果 DossierX 选择不在 task row 上保存 result，则必须在同一实现阶段提供等价的持久化表达，例如 task result 表或 company 层派生字段。但不能只依赖一次性的 task event，因为 task event 不适合作为后续链路的唯一状态来源。
+
+后续可以在 company 层增加派生字段，例如 `company.dossierCoverageState`，用于列表页和公司页快速展示；但它应从持久化 result 或 bundle 派生，不替代 run bundle 本身。
 
 ## 数据流
 
