@@ -11,7 +11,7 @@ export interface DossierMaterialOutcome {
   status: 'found' | 'failed' | 'skipped';
   material: Pick<
     DossierMaterialInput,
-    'authority' | 'documentType' | 'published' | 'accessionNo' | 'primaryDocument'
+    'authority' | 'documentType' | 'published' | 'accessionNo' | 'primaryDocument' | 'sourceChannel'
   >;
   sourceId?: string;
   contentHash?: string;
@@ -34,6 +34,13 @@ function outcomeMatches(
   expectation: DossierSourceExpectation,
   outcome: DossierMaterialOutcome
 ): boolean {
+  if (
+    expectation.match.sourceChannel &&
+    outcome.material.sourceChannel !== expectation.match.sourceChannel
+  ) {
+    return false;
+  }
+
   return (
     authorityMatches(expectation, outcome.material.authority) &&
     expectation.match.documentTypes.includes(outcome.material.documentType)
@@ -44,8 +51,12 @@ function statusFromOutcome(outcome: DossierMaterialOutcome): SourceInventoryItem
   return outcome.status;
 }
 
-function missingItem(expectation: DossierSourceExpectation): SourceInventoryItem {
-  const base = {
+function foundOutcomeIsComplete(outcome: DossierMaterialOutcome): boolean {
+  return Boolean(outcome.sourceId && outcome.contentHash && outcome.outputPath);
+}
+
+function baseItem(expectation: DossierSourceExpectation): Omit<SourceInventoryItem, 'status'> {
+  return {
     expectationId: expectation.expectationId,
     label: expectation.label,
     required: expectation.required,
@@ -56,6 +67,10 @@ function missingItem(expectation: DossierSourceExpectation): SourceInventoryItem
     selectionRule: expectation.selectionRule,
     manualSupplementAllowed: expectation.manualSupplementAllowed,
   };
+}
+
+function missingItem(expectation: DossierSourceExpectation): SourceInventoryItem {
+  const base = baseItem(expectation);
 
   if (expectation.notApplicable) {
     return {
@@ -88,25 +103,26 @@ export function buildSourceInventory(input: {
 
     const status = statusFromOutcome(outcome);
     const found = status === 'found';
+    const incompleteFound = found && !foundOutcomeIsComplete(outcome);
 
     return {
-      expectationId: expectation.expectationId,
-      label: expectation.label,
-      required: expectation.required,
-      authority: expectation.authority,
-      documentType: expectation.documentType,
-      asOf: expectation.asOf,
-      period: expectation.period,
-      selectionRule: expectation.selectionRule,
-      manualSupplementAllowed: expectation.manualSupplementAllowed,
-      status,
+      ...baseItem(expectation),
+      status: incompleteFound ? 'failed' : status,
       sourceId: outcome.sourceId,
       contentHash: outcome.contentHash,
       sourceDate: outcome.material.published,
       filingDate: outcome.material.authority === 'sec' ? outcome.material.published : undefined,
       materializedPath: outcome.outputPath ? toVaultRelative(input.root, outcome.outputPath) : undefined,
-      errorCode: found ? undefined : outcome.errorCode ?? 'manual_review_required',
-      reason: found ? undefined : outcome.error ?? `${expectation.label} requires review`,
+      errorCode: found
+        ? incompleteFound
+          ? 'source_materialize_failed'
+          : undefined
+        : outcome.errorCode ?? 'manual_review_required',
+      reason: found
+        ? incompleteFound
+          ? `${expectation.label} found outcome is missing source identity, content hash, or materialized path`
+          : undefined
+        : outcome.error ?? `${expectation.label} requires review`,
     };
   });
 }

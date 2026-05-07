@@ -74,6 +74,93 @@ describe('source inventory builder', () => {
     });
   });
 
+  it('fails incomplete found outcomes instead of emitting unusable found inventory', () => {
+    const inventory = buildSourceInventory({
+      root: '/vault',
+      expectations,
+      outcomes: [
+        {
+          status: 'found',
+          sourceId: 'sec:0000320193-25-000008:aapl-20240928.htm',
+          contentHash: 'sha256:5f2c7a4b9d8e1a30',
+          material: {
+            authority: 'sec',
+            documentType: '10-k',
+            published: '2024-11-01',
+            accessionNo: '0000320193-25-000008',
+            primaryDocument: 'aapl-20240928.htm',
+          },
+        },
+      ],
+    });
+
+    expect(inventory[0]).toMatchObject({
+      expectationId: 'sec.latest-10-k',
+      status: 'failed',
+      errorCode: 'source_materialize_failed',
+      reason:
+        'Latest annual report on Form 10-K found outcome is missing source identity, content hash, or materialized path',
+    });
+  });
+
+  it('uses source channel when matching otherwise equivalent outcomes', () => {
+    const inventory = buildSourceInventory({
+      root: '/vault',
+      expectations: [
+        {
+          expectationId: 'company.latest-earnings-call-transcript',
+          label: 'Latest earnings call transcript',
+          required: true,
+          authority: 'company',
+          documentType: 'earnings-call-transcript',
+          asOf: '2026-05-07',
+          period: 'latest-earnings-event',
+          selectionRule: 'latest earnings call transcript',
+          manualSupplementAllowed: true,
+          match: {
+            authorities: ['company'],
+            documentTypes: ['earnings-call-transcript'],
+            sourceChannel: 'investor-relations',
+          },
+        },
+      ],
+      outcomes: [
+        {
+          status: 'found',
+          sourceId: 'company:https://example.com/vendor-call:2026-02-01',
+          contentHash: 'sha256:vendor',
+          outputPath: '/vault/sources/earnings-call-transcript/2026/vendor.md',
+          material: {
+            authority: 'company',
+            documentType: 'earnings-call-transcript',
+            published: '2026-02-01',
+            sourceChannel: 'vendor-feed',
+          },
+        },
+        {
+          status: 'found',
+          sourceId: 'company:https://example.com/ir-call:2026-02-01',
+          contentHash: 'sha256:investor-relations',
+          outputPath: '/vault/sources/earnings-call-transcript/2026/ir.md',
+          material: {
+            authority: 'company',
+            documentType: 'earnings-call-transcript',
+            published: '2026-02-01',
+            sourceChannel: 'investor-relations',
+          },
+        },
+      ],
+    });
+
+    expect(inventory[0]).toMatchObject({
+      expectationId: 'company.latest-earnings-call-transcript',
+      status: 'found',
+      sourceId: 'company:https://example.com/ir-call:2026-02-01',
+      contentHash: 'sha256:investor-relations',
+      materializedPath: 'sources/earnings-call-transcript/2026/ir.md',
+    });
+  });
+
   it('marks required unmatched expectations as missing', () => {
     const inventory = buildSourceInventory({
       root: '/vault',
