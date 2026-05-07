@@ -343,7 +343,12 @@ export async function applyManifest(
   result.commercialReportAllowed = qualityReport.commercialReportAllowed;
   result.blockingReasons = qualityReport.blockingReasons;
 
-  writeJsonFile(result.sourceInventoryPath, inventory);
+  writeJsonFile(result.sourceInventoryPath, {
+    schemaVersion: COVERAGE_CONTRACT_SCHEMA_VERSION,
+    runId,
+    preset: qualityReport.preset,
+    items: inventory,
+  });
   writeJsonFile(result.qualityReportPath, qualityReport);
   writeFileSync(join(runDir, 'result.json'), `${renderRunResult(root, contractManifest, result, inventory, qualityReport)}\n`);
 

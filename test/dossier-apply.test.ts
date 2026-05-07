@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { applyManifest } from '../src/lib/dossier-apply.js';
+import { COVERAGE_CONTRACT_SCHEMA_VERSION } from '../src/lib/dossier-contract.js';
 import { installMockMarkitdown } from './helpers/mock-markitdown.js';
 
 let testDir: string;
@@ -465,18 +466,26 @@ describe('applyManifest', () => {
     expect(qualityReport.commercialReportAllowed).toBe(true);
     expect(qualityReport.blockingReasons).toEqual([]);
 
-    const inventory = JSON.parse(readFileSync(join(result.runDir, 'source_inventory.json'), 'utf-8')) as Array<{
-      expectationId: string;
-      status: string;
-      contentHash: string;
-      materializedPath: string;
-    }>;
-    expect(inventory[0]).toMatchObject({
+    const sourceInventory = JSON.parse(readFileSync(join(result.runDir, 'source_inventory.json'), 'utf-8')) as {
+      schemaVersion: string;
+      runId: string;
+      preset: { id: string; version: string };
+      items: Array<{
+        expectationId: string;
+        status: string;
+        contentHash: string;
+        materializedPath: string;
+      }>;
+    };
+    expect(sourceInventory.schemaVersion).toBe(COVERAGE_CONTRACT_SCHEMA_VERSION);
+    expect(sourceInventory.runId).toBe('2026-05-07-aapl');
+    expect(sourceInventory.preset).toEqual({ id: 'us-listed-company', version: COVERAGE_CONTRACT_SCHEMA_VERSION });
+    expect(sourceInventory.items[0]).toMatchObject({
       expectationId: 'sec.latest-10-k',
       status: 'found',
       materializedPath: 'sources/10-k/2024/2024-11-01-aapl-10-k/00-primary-10-k.md',
     });
-    expect(inventory[0]?.contentHash).toMatch(/^sha256:[a-f0-9]{16}$/);
+    expect(sourceInventory.items[0]?.contentHash).toMatch(/^sha256:[a-f0-9]{16}$/);
   });
 
   it('should keep failed coverage runs consumable when a required source is missing', async () => {
