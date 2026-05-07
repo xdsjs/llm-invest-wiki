@@ -74,7 +74,7 @@ DossierX 负责回答：
 
 一次 run 的全部产物必须写入独立 run 目录。
 
-建议目录：
+目录：
 
 ```text
 .llm-wiki-invest/dossier-runs/{runId}/
@@ -86,7 +86,7 @@ DossierX 负责回答：
   unresolved/
 ```
 
-DossierX 只读取稳定入口。推荐入口是 `bundle.json`。如果 v0 不新增 `bundle.json`，则以 run 目录下已完成写入的 `manifest.json` 和 `quality_report.json` 作为入口，但必须有明确的完成标记。
+DossierX 只读取稳定入口。v0 强制 `bundle.json` 作为唯一完成入口和完成标记。其它 JSON 文件必须通过 `bundle.json.files` 引用，DossierX 不直接扫描 run 目录，也不根据目录中文件是否存在推断 run 状态。
 
 引擎应先写临时目录或临时文件，完成所有产物后再发布为可消费 bundle。DossierX 不读取半成品目录。
 
@@ -140,7 +140,10 @@ DossierX 不需要根据 inventory 自行推断是否阻断商业报告。它只
 
 ### Reason 要求
 
-`missing`、`failed`、`skipped`、`not_applicable` 都必须有 `reason` 或 `errorCode`。
+`missing`、`failed`、`skipped`、`not_applicable` 都必须同时具备：
+
+- 稳定 `errorCode`，用于 DossierX 的 UI 分支、补材料引导和任务事件归类。
+- 面向人展示的 `reason` 或 `message`，用于解释当前状态。
 
 `not_applicable` 必须解释为什么不适用。比如“公司未举办 earnings call”与“系统未找到 transcript”是不同产品含义，不能混为同一种缺失。
 
@@ -157,6 +160,9 @@ DossierX 不需要根据 inventory 自行推断是否阻断商业报告。它只
   "required": true,
   "authority": "sec",
   "documentType": "10-k",
+  "asOf": "2026-05-07",
+  "period": "latest-fiscal-year",
+  "selectionRule": "latest annual report on Form 10-K for the configured CIK as of the run timestamp",
   "status": "missing",
   "reason": "No 10-K filing was found for the configured company identity",
   "errorCode": "source_missing",
@@ -170,6 +176,8 @@ DossierX 不需要根据 inventory 自行推断是否阻断商业报告。它只
 {
   "sourceId": "sec:0000320193-25-000008:aapl-20240928.htm",
   "contentHash": "sha256:5f2c7a4b9d8e1a30",
+  "sourceDate": "2024-11-01",
+  "filingDate": "2024-11-01",
   "materializedPath": "sources/10-k/2024/2024-11-01-0000320193-10-k/00-primary-10-k.md"
 }
 ```
@@ -195,11 +203,18 @@ v0 optional sources 建议：
 
 这些条目在实现时应以 preset data 的形式输出到 `manifest.json` 和 `source_inventory.json`，而不是只存在于文档说明中。
 
+对“最新”“最近”这类相对 expectation，preset 输出必须提供机器可审计字段：
+
+- `asOf`：本次 run 判断相对时间的基准。
+- `period`：该 expectation 对应的期间，例如 `latest-fiscal-year`、`latest-quarter`、`latest-earnings-event`。
+- `selectionRule`：用于选择 source 的稳定规则说明。
+- `filingDate` 或 `sourceDate`：当 `status` 为 `found` 时，记录实际命中的披露日期或来源发布日期。
+
 ## Bundle 文件
 
 ### `bundle.json`
 
-推荐新增一个稳定入口文件。
+`bundle.json` 是 v0 强制入口文件。
 
 职责：
 
@@ -279,14 +294,27 @@ DossierX v0 只作为消费者。
 流程：
 
 1. 创建或接收 `llm-wiki-invest` run bundle 引用。
-2. 读取 `bundle.json` 或明确的完成入口。
+2. 只读取 `bundle.json` 作为完成入口。
 3. 读取 `quality_report.json`。
-4. 如果 `commercialReportAllowed === false`，DossierX 任务可完成为 `incomplete dossier`，但不能进入商业报告生成链路。
+4. 如果 `commercialReportAllowed === false`，DossierX 任务仍以现有任务模型完成为 `task.status = succeeded`，但 `task.result.coverageState = "incomplete"`，并写入 `task.result.commercialReportAllowed = false`、`task.result.blockingReasons[]` 和 `task.result.bundlePath`。
 5. 展示 `source_inventory.json` 中的缺失 required sources。
 6. 对 `manualSupplementAllowed === true` 的缺失项展示补材料入口。
 7. 保存 run id 和 bundle path，供后续 diff、审计和人工复核使用。
 
 DossierX 不扫描 run 目录猜测状态，不根据文件是否存在自行推断资料是否完整。
+
+### DossierX 任务状态语义
+
+DossierX 当前任务状态集合为 `queued | claimed | running | succeeded | failed | cancelled`，没有单独的 `incomplete dossier` task status。因此 v0 不要求 DossierX 新增任务状态。
+
+`incomplete dossier` 是任务结果层状态，而不是任务生命周期状态：
+
+- `task.status = succeeded`：表示 daemon 成功完成了 dossier run 并拿到了可消费 bundle。
+- `task.result.coverageState = "complete"`：coverage gate 通过，可以进入商业报告生成链路。
+- `task.result.coverageState = "incomplete"`：coverage gate 未通过，任务可展示为已完成的 incomplete dossier，但必须阻断商业报告生成。
+- `task.status = failed`：表示 run 未能产出可消费 `bundle.json`，DossierX 无法读取 coverage contract。
+
+后续可以在 company 层增加派生字段，例如 `company.dossierCoverageState`，但这不是 v0 必需项。
 
 ## 数据流
 
@@ -328,12 +356,14 @@ v0 完成后，应满足：
 - 每次 dossier run 都产出独立 bundle。
 - run 失败或部分失败时仍产出可消费的 `source_inventory.json` 和 `quality_report.json`。
 - 每个 required source 都有明确状态。
-- `missing`、`failed`、`skipped`、`not_applicable` 都有 reason 或 error code。
+- `missing`、`failed`、`skipped`、`not_applicable` 都有稳定 `errorCode`，并有面向人展示的 `reason` 或 `message`。
 - `not_applicable` 不会被误表示为 `missing`。
 - `quality_report.commercialReportAllowed` 直接表达是否允许商业报告生成。
 - `quality_report.blockingReasons[]` 足够 DossierX 展示阻断原因。
-- DossierX 可以只读取稳定入口，不扫描半成品文件。
+- `bundle.json` 是唯一完成入口；DossierX 可以只读取 `bundle.json`，不扫描半成品文件。
+- DossierX 可在 `task.status = succeeded` 的同时通过 `task.result.coverageState = "incomplete"` 表达“任务完成但不可生成商业报告”。
 - 已物化材料能通过 source id 和 content hash 回溯。
+- 相对 expectation 有 `asOf`、`period`、`selectionRule` 和命中时的 `filingDate` 或 `sourceDate`，便于审计“latest/recent”是否真实满足。
 - 文档变更不需要单元测试；后续实现代码时需要为契约、状态和 gate 补测试。
 
 ## 后续扩展点
