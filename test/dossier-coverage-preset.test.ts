@@ -178,4 +178,32 @@ describe('us-listed-company coverage preset', () => {
       authority: 'nyse',
     });
   });
+
+  it.each([
+    { exchange: undefined, expectedAuthority: 'nasdaq' },
+    { exchange: 'New York Stock Exchange', expectedAuthority: 'nasdaq' },
+    { exchange: 'nyse', expectedAuthority: 'nasdaq' },
+  ])(
+    'falls back to nasdaq exchange profile authority for $exchange',
+    ({ exchange, expectedAuthority }) => {
+      const preset = buildUsListedCompanyPreset({
+        asOf: '2026-05-07',
+        company: {
+          companyName: 'Example Corporation',
+          ticker: 'EXM',
+          market: 'us',
+          cik: '0000000000',
+          exchange,
+        },
+      });
+
+      expect(
+        preset.expectations.find(
+          (item) => item.expectationId === 'exchange.latest-company-profile'
+        )
+      ).toMatchObject({
+        authority: expectedAuthority,
+      });
+    }
+  );
 });

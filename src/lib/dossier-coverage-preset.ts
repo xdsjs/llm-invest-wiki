@@ -9,6 +9,10 @@ type UsListedCompanyPreset = {
   expectations: DossierSourceExpectation[];
 };
 
+function exchangeProfileAuthority(exchange: string | undefined): 'nasdaq' | 'nyse' {
+  return exchange === 'NYSE' ? 'nyse' : 'nasdaq';
+}
+
 export function buildUsListedCompanyPreset(input: {
   asOf: string;
   company: DossierManifestCompany;
@@ -131,7 +135,7 @@ export function buildUsListedCompanyPreset(input: {
         expectationId: 'exchange.latest-company-profile',
         label: 'Latest exchange company profile',
         required: false,
-        authority: input.company.exchange === 'NYSE' ? 'nyse' : 'nasdaq',
+        authority: exchangeProfileAuthority(input.company.exchange),
         documentType: 'exchange-profile',
         period: 'current-profile',
         manualSupplementAllowed: false,
