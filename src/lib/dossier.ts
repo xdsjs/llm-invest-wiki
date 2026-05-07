@@ -32,7 +32,49 @@ export interface DossierManifestCompany {
   exchange?: string;
 }
 
+export interface DossierPresetRef {
+  id: string;
+  version: string;
+}
+
+export type DossierSourceStatus = 'found' | 'missing' | 'failed' | 'skipped' | 'not_applicable';
+
+export type DossierContractErrorCode =
+  | 'source_missing'
+  | 'source_fetch_failed'
+  | 'source_parse_failed'
+  | 'source_materialize_failed'
+  | 'source_empty_output'
+  | 'source_duplicate_identity'
+  | 'source_sequence_conflict'
+  | 'source_not_applicable'
+  | 'manual_review_required';
+
+export interface DossierSourceExpectation {
+  expectationId: string;
+  label: string;
+  required: boolean;
+  authority: DossierAuthority;
+  documentType: string;
+  asOf: string;
+  period: string;
+  selectionRule: string;
+  manualSupplementAllowed: boolean;
+  match: {
+    authorities?: DossierAuthority[];
+    documentTypes: string[];
+    sourceChannel?: string;
+  };
+  notApplicable?: {
+    errorCode: DossierContractErrorCode;
+    reason: string;
+  };
+}
+
 export interface DossierManifest {
+  schemaVersion?: string;
+  preset?: DossierPresetRef;
+  expectations?: DossierSourceExpectation[];
   company: DossierManifestCompany;
   generatedAt: string;
   materials: DossierMaterialInput[];
