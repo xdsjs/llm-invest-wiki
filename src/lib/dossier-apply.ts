@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, sep } from 'node:path';
 import {
   buildDisclosureDir,
@@ -17,6 +17,15 @@ import {
   saveDossierState,
   updateDossierCheckpoints,
 } from './dossier-state.js';
+import {
+  buildCoverageBundle,
+  buildQualityReport,
+  COVERAGE_CONTRACT_SCHEMA_VERSION,
+} from './dossier-contract.js';
+import type { CoverageBlockingReason, SourceInventoryItem } from './dossier-contract.js';
+import { buildUsListedCompanyPreset } from './dossier-coverage-preset.js';
+import { buildSourceInventory } from './dossier-source-inventory.js';
+import type { DossierMaterialOutcome } from './dossier-source-inventory.js';
 
 export interface ApplyResult {
   created: string[];
@@ -25,6 +34,11 @@ export interface ApplyResult {
   unresolved: string[];
   runDir: string;
   runId: string;
+  bundlePath: string;
+  sourceInventoryPath: string;
+  qualityReportPath: string;
+  commercialReportAllowed: boolean;
+  blockingReasons: CoverageBlockingReason[];
 }
 
 export interface ApplyOptions {
@@ -109,7 +123,45 @@ function toVaultRelative(root: string, path: string): string {
   return relative(root, path).split(sep).join('/');
 }
 
-function renderRunResult(root: string, manifest: DossierManifest, result: ApplyResult): string {
+function writeJsonFile(path: string, value: unknown): void {
+  writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`);
+}
+
+function writeCompletionJson(path: string, value: unknown): void {
+  const tmpPath = `${path}.tmp-${process.pid}-${Date.now()}`;
+  writeJsonFile(tmpPath, value);
+  renameSync(tmpPath, path);
+}
+
+function hashToContractHash(hash: string): string {
+  return hash.startsWith('sha256:') ? hash : `sha256:${hash}`;
+}
+
+function normalizeManifestForContract(manifest: DossierManifest): DossierManifest {
+  if (manifest.preset && manifest.expectations) {
+    return {
+      ...manifest,
+      schemaVersion: manifest.schemaVersion ?? COVERAGE_CONTRACT_SCHEMA_VERSION,
+    };
+  }
+
+  const asOf = manifest.generatedAt.slice(0, 10);
+  const preset = buildUsListedCompanyPreset({ asOf, company: manifest.company });
+  return {
+    ...manifest,
+    schemaVersion: COVERAGE_CONTRACT_SCHEMA_VERSION,
+    preset: preset.ref,
+    expectations: preset.expectations,
+  };
+}
+
+function renderRunResult(
+  root: string,
+  manifest: DossierManifest,
+  result: ApplyResult,
+  inventory: SourceInventoryItem[],
+  qualityReport: ReturnType<typeof buildQualityReport>
+): string {
   return JSON.stringify({
     runId: result.runId,
     company: manifest.company,
@@ -121,6 +173,18 @@ function renderRunResult(root: string, manifest: DossierManifest, result: ApplyR
     })),
     skippedDuplicates: result.skippedDuplicates,
     unresolved: result.unresolved.map(path => toVaultRelative(root, path)),
+    sourceInventory: 'source_inventory.json',
+    qualityReport: 'quality_report.json',
+    commercialReportAllowed: qualityReport.commercialReportAllowed,
+    blockingReasons: qualityReport.blockingReasons,
+    coverageSummary: qualityReport.summary,
+    inventorySummary: inventory.map(item => ({
+      expectationId: item.expectationId,
+      status: item.status,
+      sourceId: item.sourceId,
+      materializedPath: item.materializedPath,
+      errorCode: item.errorCode,
+    })),
   }, null, 2);
 }
 
@@ -138,17 +202,30 @@ export async function applyManifest(
   const { runId, runDir } = allocateRunDir(paths.dossierRuns, manifest, options.runId);
   mkdirSync(runDir, { recursive: true });
   mkdirSync(join(runDir, 'unresolved'), { recursive: true });
-  writeFileSync(join(runDir, 'manifest.json'), JSON.stringify(manifest, null, 2));
+  const contractManifest = normalizeManifestForContract(manifest);
+  writeJsonFile(join(runDir, 'manifest.json'), contractManifest);
 
-  const state = loadDossierState(paths.dossierState, manifest.company);
+  const state = loadDossierState(paths.dossierState, contractManifest.company);
   const now = new Date().toISOString();
-  const result: ApplyResult = { created: [], materialized: [], skippedDuplicates: [], unresolved: [], runDir, runId };
+  const result: ApplyResult = {
+    created: [],
+    materialized: [],
+    skippedDuplicates: [],
+    unresolved: [],
+    runDir,
+    runId,
+    bundlePath: join(runDir, 'bundle.json'),
+    sourceInventoryPath: join(runDir, 'source_inventory.json'),
+    qualityReportPath: join(runDir, 'quality_report.json'),
+    commercialReportAllowed: false,
+    blockingReasons: [],
+  };
+  const outcomes: DossierMaterialOutcome[] = [];
   const reservedSequences = new Set<string>();
 
-  for (const material of manifest.materials) {
-    const identityKey = makeIdentityKey(material);
-
+  for (const material of contractManifest.materials) {
     try {
+      const identityKey = makeIdentityKey(material);
       const seqKey = sequenceKey(material);
       if (reservedSequences.has(seqKey)) {
         throw new Error(`duplicate sequence ${material.sequence} within ${material.documentType}/${material.disclosureKey}`);
@@ -170,6 +247,13 @@ export async function applyManifest(
         );
         updateDossierCheckpoints(state, material, identityKey, now);
         result.skippedDuplicates.push(identityKey);
+        outcomes.push({
+          status: 'found',
+          material,
+          sourceId: identityKey,
+          contentHash: hashToContractHash(existing.contentHash),
+          outputPath: existing.outputPath,
+        });
         continue;
       }
 
@@ -207,14 +291,30 @@ export async function applyManifest(
       updateDossierCheckpoints(state, material, identityKey, now);
       result.created.push(outPath);
       result.materialized.push({ path: outPath, materializer });
+      outcomes.push({
+        status: 'found',
+        material,
+        sourceId: identityKey,
+        contentHash: hashToContractHash(contentHash),
+        outputPath: outPath,
+      });
     } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      outcomes.push({
+        status: 'failed',
+        material,
+        errorCode: message.includes('duplicate sequence')
+          ? 'source_sequence_conflict'
+          : 'source_materialize_failed',
+        error: message,
+      });
       const unresolvedPath = join(
         paths.dossierUnresolved,
         `${material.disclosureKey}-${material.documentType}-${material.sequence}.json`
       );
       const unresolvedPayload = JSON.stringify({
         material,
-        error: error instanceof Error ? error.message : String(error),
+        error: message,
       }, null, 2);
       writeFileSync(unresolvedPath, unresolvedPayload);
       writeFileSync(
@@ -227,6 +327,32 @@ export async function applyManifest(
 
   state.updatedAt = now;
   saveDossierState(paths.dossierState, state);
-  writeFileSync(join(runDir, 'result.json'), `${renderRunResult(root, manifest, result)}\n`);
+  const inventory = buildSourceInventory({
+    root,
+    expectations: contractManifest.expectations ?? [],
+    outcomes,
+  });
+  const qualityReport = buildQualityReport({
+    runId,
+    preset: contractManifest.preset ?? {
+      id: 'us-listed-company',
+      version: COVERAGE_CONTRACT_SCHEMA_VERSION,
+    },
+    inventory,
+  });
+  result.commercialReportAllowed = qualityReport.commercialReportAllowed;
+  result.blockingReasons = qualityReport.blockingReasons;
+
+  writeJsonFile(result.sourceInventoryPath, inventory);
+  writeJsonFile(result.qualityReportPath, qualityReport);
+  writeFileSync(join(runDir, 'result.json'), `${renderRunResult(root, contractManifest, result, inventory, qualityReport)}\n`);
+
+  const bundle = buildCoverageBundle({
+    runId,
+    completedAt: now,
+    company: contractManifest.company,
+    preset: qualityReport.preset,
+  });
+  writeCompletionJson(result.bundlePath, bundle);
   return result;
 }
