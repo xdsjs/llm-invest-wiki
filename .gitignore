@@ -3,3 +3,6 @@ dist/
 /AGENTS.md
 /.llm-wiki-invest/
 *.log
+
+.worktrees
+.worktrees/

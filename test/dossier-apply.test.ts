@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { applyManifest } from '../src/lib/dossier-apply.js';
+import { COVERAGE_CONTRACT_SCHEMA_VERSION } from '../src/lib/dossier-contract.js';
 import { installMockMarkitdown } from './helpers/mock-markitdown.js';
 
 let testDir: string;
@@ -388,5 +389,139 @@ describe('applyManifest', () => {
       join(testDir, '.llm-wiki-invest/dossier-unresolved/2026-02-01-q1-results-earnings-release-0.json'),
     ]);
     expect(readFileSync(result.unresolved[0], 'utf-8')).toContain('duplicate sequence 0');
+  });
+
+  it('should write a coverage contract bundle as the run completion entrypoint', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('# 10-K', {
+      status: 200,
+      headers: { 'content-type': 'text/markdown; charset=utf-8' },
+    })) as typeof fetch);
+
+    const result = await applyManifest(testDir, {
+      schemaVersion: 'coverage-contract/v0',
+      preset: { id: 'us-listed-company', version: 'coverage-contract/v0' },
+      company: {
+        companyName: 'Apple Inc.',
+        ticker: 'AAPL',
+        market: 'us',
+        cik: '0000320193',
+        exchange: 'NASDAQ',
+      },
+      generatedAt: '2026-05-07T02:00:00Z',
+      expectations: [{
+        expectationId: 'sec.latest-10-k',
+        label: 'Latest annual report on Form 10-K',
+        required: true,
+        authority: 'sec',
+        documentType: '10-k',
+        asOf: '2026-05-07',
+        period: 'latest-fiscal-year',
+        selectionRule: 'latest annual report on Form 10-K for AAPL',
+        manualSupplementAllowed: true,
+        match: { authorities: ['sec'], documentTypes: ['10-k'] },
+      }],
+      materials: [{
+        companyName: 'Apple Inc.',
+        ticker: 'AAPL',
+        market: 'us',
+        authority: 'sec',
+        title: 'Apple 10-K',
+        source: 'https://sec.example.com/aapl-10k.htm',
+        canonicalUrl: 'https://sec.example.com/aapl-10k.htm',
+        author: '[[sec.gov]]',
+        published: '2024-11-01',
+        documentType: '10-k',
+        disclosureKey: '2024-11-01-aapl-10-k',
+        sequence: 0,
+        suggestedFilename: 'primary-10-k',
+        accessionNo: '0000320193-25-000008',
+        primaryDocument: 'aapl-20240928.htm',
+        contentType: 'text/html',
+      }],
+    }, { runId: '2026-05-07-aapl' });
+
+    expect(result.bundlePath).toBe(join(result.runDir, 'bundle.json'));
+    expect(existsSync(join(result.runDir, 'manifest.json'))).toBe(true);
+    expect(existsSync(join(result.runDir, 'source_inventory.json'))).toBe(true);
+    expect(existsSync(join(result.runDir, 'quality_report.json'))).toBe(true);
+    expect(existsSync(join(result.runDir, 'result.json'))).toBe(true);
+    expect(existsSync(join(result.runDir, 'bundle.json'))).toBe(true);
+
+    const bundle = JSON.parse(readFileSync(join(result.runDir, 'bundle.json'), 'utf-8')) as {
+      schemaVersion: string;
+      files: Record<string, string>;
+    };
+    expect(bundle.schemaVersion).toBe('coverage-contract/v0');
+    expect(bundle.files).toEqual({
+      manifest: 'manifest.json',
+      sourceInventory: 'source_inventory.json',
+      qualityReport: 'quality_report.json',
+      result: 'result.json',
+    });
+
+    const qualityReport = JSON.parse(readFileSync(join(result.runDir, 'quality_report.json'), 'utf-8')) as {
+      commercialReportAllowed: boolean;
+      blockingReasons: unknown[];
+    };
+    expect(qualityReport.commercialReportAllowed).toBe(true);
+    expect(qualityReport.blockingReasons).toEqual([]);
+
+    const sourceInventory = JSON.parse(readFileSync(join(result.runDir, 'source_inventory.json'), 'utf-8')) as {
+      schemaVersion: string;
+      runId: string;
+      preset: { id: string; version: string };
+      items: Array<{
+        expectationId: string;
+        status: string;
+        contentHash: string;
+        materializedPath: string;
+      }>;
+    };
+    expect(sourceInventory.schemaVersion).toBe(COVERAGE_CONTRACT_SCHEMA_VERSION);
+    expect(sourceInventory.runId).toBe('2026-05-07-aapl');
+    expect(sourceInventory.preset).toEqual({ id: 'us-listed-company', version: COVERAGE_CONTRACT_SCHEMA_VERSION });
+    expect(sourceInventory.items[0]).toMatchObject({
+      expectationId: 'sec.latest-10-k',
+      status: 'found',
+      materializedPath: 'sources/10-k/2024/2024-11-01-aapl-10-k/00-primary-10-k.md',
+    });
+    expect(sourceInventory.items[0]?.contentHash).toMatch(/^sha256:[a-f0-9]{16}$/);
+  });
+
+  it('should keep failed coverage runs consumable when a required source is missing', async () => {
+    const result = await applyManifest(testDir, {
+      schemaVersion: 'coverage-contract/v0',
+      preset: { id: 'us-listed-company', version: 'coverage-contract/v0' },
+      company: { companyName: 'Apple Inc.', ticker: 'AAPL', market: 'us' },
+      generatedAt: '2026-05-07T02:00:00Z',
+      expectations: [{
+        expectationId: 'company.latest-earnings-call-transcript',
+        label: 'Latest earnings call transcript',
+        required: true,
+        authority: 'company',
+        documentType: 'earnings-call-transcript',
+        asOf: '2026-05-07',
+        period: 'latest-earnings-event',
+        selectionRule: 'latest earnings call transcript for AAPL',
+        manualSupplementAllowed: true,
+        match: { authorities: ['company'], documentTypes: ['earnings-call-transcript'] },
+      }],
+      materials: [],
+    }, { runId: '2026-05-07-aapl-missing' });
+
+    const qualityReport = JSON.parse(readFileSync(join(result.runDir, 'quality_report.json'), 'utf-8')) as {
+      commercialReportAllowed: boolean;
+      blockingReasons: Array<{ code: string; expectationId: string }>;
+    };
+    expect(result.commercialReportAllowed).toBe(false);
+    expect(qualityReport.commercialReportAllowed).toBe(false);
+    expect(qualityReport.blockingReasons).toEqual([
+      {
+        code: 'missing_required_source',
+        message: 'Latest earnings call transcript was not found',
+        expectationId: 'company.latest-earnings-call-transcript',
+      },
+    ]);
+    expect(existsSync(join(result.runDir, 'bundle.json'))).toBe(true);
   });
 });
