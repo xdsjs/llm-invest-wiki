@@ -129,6 +129,9 @@ dossierCommand
     console.log(`Skipped duplicates: ${result.skippedDuplicates.length}`);
     console.log(`Unresolved: ${result.unresolved.length}`);
     console.log(`Run: ${relative(root, result.runDir).split(sep).join('/')}`);
+    console.log(`Bundle: ${relative(root, result.bundlePath).split(sep).join('/')}`);
+    console.log(`Coverage: ${result.commercialReportAllowed ? 'complete' : 'incomplete'}`);
+    console.log(`Blocking reasons: ${result.blockingReasons.length}`);
   });
 
 dossierCommand

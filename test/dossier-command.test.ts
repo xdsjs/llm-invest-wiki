@@ -93,9 +93,15 @@ describe('dossier command', () => {
 
     expect(output).toContain('Created: 1');
     expect(output).toContain('Run: .llm-wiki-invest/dossier-runs/2026-04-25-aapl');
+    expect(output).toContain('Coverage: incomplete');
+    expect(output).toContain('Blocking reasons: 5');
+    expect(output).toContain('Bundle: .llm-wiki-invest/dossier-runs/2026-04-25-aapl/bundle.json');
     expect(existsSync(outPath)).toBe(true);
     expect(readFileSync(outPath, 'utf-8')).toContain("title: 'Apple Q1 Results Release'");
     expect(existsSync(join(testDir, '.llm-wiki-invest/dossier-runs/2026-04-25-aapl/result.json'))).toBe(true);
+    expect(existsSync(join(testDir, '.llm-wiki-invest/dossier-runs/2026-04-25-aapl/bundle.json'))).toBe(true);
+    expect(existsSync(join(testDir, '.llm-wiki-invest/dossier-runs/2026-04-25-aapl/source_inventory.json'))).toBe(true);
+    expect(existsSync(join(testDir, '.llm-wiki-invest/dossier-runs/2026-04-25-aapl/quality_report.json'))).toBe(true);
     expect(existsSync(join(testDir, '.llm-wiki-invest/dossier-runs/2026-04-25-aapl/report.md'))).toBe(false);
   });
 
