@@ -150,6 +150,34 @@ describe('coverage contract v0', () => {
     });
   });
 
+  it('marks blocking required sources as needing review when manual review is required', () => {
+    const report = buildQualityReport({
+      runId: '2026-05-07-aapl',
+      preset,
+      inventory: [
+        item({
+          expectationId: 'company.latest-earnings-call',
+          required: true,
+          authority: 'company',
+          documentType: 'earnings-call-transcript',
+          period: 'latest-earnings-event',
+          status: 'missing',
+          errorCode: 'manual_review_required',
+          reason: 'Manual transcript review is required',
+        }),
+      ],
+    });
+
+    expect(report.commercialReportAllowed).toBe(false);
+    expect(report.blockingReasons).toEqual([
+      {
+        code: 'required_source_needs_review',
+        message: 'Manual transcript review is required',
+        expectationId: 'company.latest-earnings-call',
+      },
+    ]);
+  });
+
   it('builds bundle.json as the single completion entrypoint', () => {
     const bundle = buildCoverageBundle({
       runId: '2026-05-07-aapl',

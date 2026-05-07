@@ -8,8 +8,6 @@ import type {
 
 export const COVERAGE_CONTRACT_SCHEMA_VERSION = 'coverage-contract/v0';
 
-export type SourceInventoryStatus = DossierSourceStatus | 'manual_review_required';
-
 export interface SourceInventoryItem {
   expectationId: string;
   label: string;
@@ -19,7 +17,7 @@ export interface SourceInventoryItem {
   asOf: string;
   period: string;
   selectionRule: string;
-  status: SourceInventoryStatus;
+  status: DossierSourceStatus;
   manualSupplementAllowed: boolean;
   sourceId?: string;
   contentHash?: string;
@@ -77,6 +75,12 @@ function blockingReasonFor(item: SourceInventoryItem): CoverageBlockingReason | 
 
   const message = item.reason ?? item.message ?? `${item.label} is ${item.status}`;
 
+  if (
+    item.errorCode === 'manual_review_required' &&
+    (item.status === 'missing' || item.status === 'failed' || item.status === 'skipped')
+  ) {
+    return { code: 'required_source_needs_review', message, expectationId: item.expectationId };
+  }
   if (item.status === 'missing') {
     return { code: 'missing_required_source', message, expectationId: item.expectationId };
   }
@@ -85,9 +89,6 @@ function blockingReasonFor(item: SourceInventoryItem): CoverageBlockingReason | 
   }
   if (item.status === 'skipped') {
     return { code: 'skipped_required_source', message, expectationId: item.expectationId };
-  }
-  if (item.status === 'manual_review_required') {
-    return { code: 'required_source_needs_review', message, expectationId: item.expectationId };
   }
 
   return undefined;
